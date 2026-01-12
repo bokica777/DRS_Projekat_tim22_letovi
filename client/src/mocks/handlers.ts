@@ -1,5 +1,7 @@
 import type { Flight, FlightStatus } from "../types/flights";
 import { mockAirlines, mockFlights } from "./db";
+import { getFlights } from "./flightStore";
+
 
 type ListFlightsParams = {
   search?: string;
@@ -16,7 +18,8 @@ export function listFlights(params: ListFlightsParams) {
   const airlineId = params.airlineId ? Number(params.airlineId) : undefined;
   const status = params.status;
 
-  let flights: Flight[] = [...mockFlights];
+  let flights: Flight[] = [...getFlights()];
+
 
   if (status) flights = flights.filter((f) => f.status === status);
   if (airlineId) flights = flights.filter((f) => f.airlineId === airlineId);

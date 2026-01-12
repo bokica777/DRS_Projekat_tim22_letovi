@@ -46,4 +46,18 @@ export const mockFlights: Flight[] = [
     price: 90,
     status: "FINISHED",
   },
+  {
+    id: 99,
+    name: "Beograd – Madrid",
+    airlineId: 2,
+    airlineName: "Lufthansa",
+    departureTime: new Date(Date.now() + 60_000 * 40).toISOString(),
+    from: "BEG",
+    to: "MAD",
+    durationMinutes: 60,
+    distanceKm: 1800,
+    price: 180,
+    status: "PENDING",
+  }
+
 ];

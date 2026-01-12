@@ -4,32 +4,49 @@ import { listAirlines, listFlights } from "../mocks/handlers";
 import { SearchBar } from "../components/SearchBar";
 import { AirlineSelect } from "../components/AirlineSelect";
 import { FlightCard } from "../components/FlightCard";
+import { createPurchase } from "../mocks/purchases";
+import { useAuth } from "../auth/AuthContext";
 
-const tabs: { key: FlightStatus; label: string }[] = [
+
+const tabs: { key: FlightStatus | "DONE"; label: string }[] = [
   { key: "PLANNED", label: "Nisu počeli" },
   { key: "IN_PROGRESS", label: "U toku" },
-  { key: "FINISHED", label: "Završeni" },
-  { key: "CANCELLED", label: "Otkazani" },
+  { key: "DONE", label: "Završeni / Otkazani" },
 ];
 
+
+
 export default function FlightsPage() {
-  const [active, setActive] = useState<FlightStatus>("PLANNED");
+  const [active, setActive] = useState<FlightStatus | "DONE">("PLANNED");
   const [airlines, setAirlines] = useState<Airline[]>([]);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [search, setSearch] = useState("");
   const [airlineId, setAirlineId] = useState("");
   const [loading, setLoading] = useState(false);
+  const { user, hasRole } = useAuth();
+  const [processingFlightIds, setProcessingFlightIds] = useState<number[]>([]);
+
 
   useEffect(() => {
     listAirlines().then(setAirlines);
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
-    listFlights({ status: active, search, airlineId })
-      .then(setFlights)
-      .finally(() => setLoading(false));
-  }, [active, search, airlineId]);
+useEffect(() => {
+  setLoading(true);
+
+  const statusToSend = active === "DONE" ? undefined : active;
+
+  listFlights({ status: statusToSend as any, search, airlineId })
+    .then((data) => {
+      if (active === "DONE") {
+        setFlights(data.filter((f) => f.status === "FINISHED" || f.status === "CANCELLED"));
+      } else {
+        setFlights(data);
+      }
+    })
+    .finally(() => setLoading(false));
+}, [active, search, airlineId]);
+
 
   const gridStyle = useMemo(
     () => ({
@@ -40,6 +57,30 @@ export default function FlightsPage() {
     }),
     []
   );
+  const handleBuy = async (flightId: number) => {
+    if (!user || !hasRole(["USER"])) return;
+
+    setProcessingFlightIds((prev) => [...prev, flightId]);
+    try {
+      await createPurchase(flightId);
+      alert("Kupovina završena ✅ (mock)");
+    } finally {
+      setProcessingFlightIds((prev) => prev.filter((id) => id !== flightId));
+    }
+  };
+
+
+  const handleCancel = (flightId: number) => {
+    const ok = window.confirm("Da li ste sigurni da želite da otkažete let?");
+    if (!ok) return;
+
+    setFlights((prev) =>
+      prev.map((f) =>
+        f.id === flightId ? { ...f, status: "CANCELLED" } : f
+      )
+    );
+  };
+
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
@@ -84,8 +125,16 @@ export default function FlightsPage() {
       ) : (
         <div style={gridStyle}>
           {flights.map((f) => (
-            <FlightCard key={f.id} flight={f} />
+            < FlightCard
+              key={f.id}
+              flight={f}
+              onBuy={handleBuy}
+              onCancel={handleCancel}
+              isBuying={processingFlightIds.includes(f.id)}
+            />
+
           ))}
+
           {flights.length === 0 && (
             <div style={{ marginTop: 16 }}>Nema letova za filter.</div>
           )}

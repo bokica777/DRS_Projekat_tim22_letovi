@@ -1,4 +1,10 @@
-export type FlightStatus = "PLANNED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
+export type FlightStatus =
+  | "PENDING"
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "FINISHED"
+  | "CANCELLED"
+  | "REJECTED";
 
 export type Airline = {
   id: number;
@@ -17,4 +23,8 @@ export type Flight = {
   distanceKm: number;
   price: number;
   status: FlightStatus;
+  rejectionReason?: string;
+  createdBy?: string;
 };
+
+
