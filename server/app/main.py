@@ -1,6 +1,8 @@
 import os
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+from app.auth import auth_bp
+
 
 from .db import db
 from .routes_users import users_bp
@@ -10,6 +12,8 @@ from .routes_admin import admin_bp
 load_dotenv()
 
 app = Flask(__name__)
+app.register_blueprint(auth_bp)
+
 
 # DB1 konekcija (SQLite fajl iz .env)
 db_url = os.getenv("DATABASE_URL", "sqlite:///db1_users.sqlite3")
