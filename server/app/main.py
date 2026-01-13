@@ -1,6 +1,8 @@
 import os
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+from app.auth import auth_bp
+
 
 from .db import db
 from .routes_users import users_bp
