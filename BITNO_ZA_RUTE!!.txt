@@ -1,0 +1,36 @@
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout
+GET    /api/auth/me
+
+PUT    /api/users/me
+POST   /api/users/me/avatar
+POST   /api/users/me/topup
+
+GET    /api/admin/users
+DELETE /api/admin/users/{userId}
+PUT    /api/admin/users/{userId}/role
+
+GET    /api/flights
+GET    /api/flights/{flightId}
+
+POST   /api/flights
+PUT    /api/flights/{flightId}
+
+GET    /api/admin/flights/pending
+POST   /api/admin/flights/{flightId}/approve
+POST   /api/admin/flights/{flightId}/reject
+POST   /api/admin/flights/{flightId}/cancel
+
+GET    /api/airlines
+POST   /api/airlines
+
+POST   /api/purchases
+GET    /api/purchases/me
+GET    /api/purchases/{purchaseId}
+POST   /api/ratings
+GET    /api/admin/ratings
+
+POST   /api/admin/reports
+
+PLANNED | IN_PROGRESS | FINISHED
