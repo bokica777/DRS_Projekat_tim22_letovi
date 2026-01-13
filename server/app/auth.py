@@ -4,7 +4,9 @@ from functools import wraps
 
 import jwt
 from flask import Blueprint, request, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+from passlib.hash import pbkdf2_sha256
+
+from .models import User
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -13,33 +15,24 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "dev_secret_change_me")
 JWT_EXP_SECONDS = int(os.environ.get("JWT_EXP_SECONDS", "3600"))  # 1h
 LOCK_SECONDS = int(os.environ.get("LOCK_SECONDS", "60"))          # 1 min za test
 
-# ================= "DB" (privremeno za kontrolnu tacku) =================
-# Ovo je samo za kontrolnu tacku dok prava DB za korisnike nije gotova.
-USERS = [
-    {
-        "id": 1,
-        "email": "admin@test.com",
-        "password_hash": generate_password_hash("Admin123!"),
-        "role": "ADMIN",
-        "first_name": "Admin",
-        "last_name": "User",
-    },
-    {
-        "id": 2,
-        "email": "user@test.com",
-        "password_hash": generate_password_hash("User123!"),
-        "role": "KORISNIK",
-        "first_name": "Regular",
-        "last_name": "User",
-    },
-]
 
+# ================= DB lookup =================
 def get_user_by_email(email: str):
     email = (email or "").strip().lower()
-    for u in USERS:
-        if u["email"].lower() == email:
-            return u
-    return None
+    u = User.query.filter_by(email=email).first()
+    if not u:
+        return None
+
+    # vraćamo dict da ostatak koda ostane isti
+    return {
+        "id": u.id,
+        "email": u.email,
+        "role": u.role,
+        "first_name": u.first_name,
+        "last_name": u.last_name,
+        "password_hash": u.password_hash,
+    }
+
 
 # ================= Login attempt tracking =================
 ATTEMPTS = {}  # email -> {"fails": int, "locked_until": epoch_seconds}
@@ -62,6 +55,7 @@ def register_fail(email: str):
 def reset_attempts(email: str):
     if email in ATTEMPTS:
         ATTEMPTS[email] = {"fails": 0, "locked_until": 0}
+
 
 # ================= JWT helpers =================
 def create_token(user):
@@ -108,9 +102,10 @@ def role_required(*roles):
         return wrapper
     return decorator
 
+
 # ================= ROUTES =================
 
-@auth_bp.post("/api/auth/login")
+@auth_bp.post("/login")
 def login():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
@@ -124,7 +119,7 @@ def login():
         return jsonify({"error": "blocked", "retry_after_seconds": seconds_left}), 403
 
     user = get_user_by_email(email)
-    if not user or not check_password_hash(user["password_hash"], password):
+    if (not user) or (not pbkdf2_sha256.verify(password, user["password_hash"])):
         rec = register_fail(email)
         locked_now, seconds_left_now = is_locked(email)
         if locked_now:
@@ -144,7 +139,8 @@ def login():
         }
     }), 200
 
-@auth_bp.get("/api/auth/me")
+
+@auth_bp.get("/me")
 @auth_required
 def me():
     u = request.user
@@ -154,12 +150,14 @@ def me():
         "role": u.get("role"),
     }), 200
 
-@auth_bp.post("/api/auth/logout")
+
+@auth_bp.post("/logout")
 @auth_required
 def logout():
     return jsonify({"message": "Logged out (client should delete token)"}), 200
 
-@auth_bp.get("/api/admin/ping")
+
+@auth_bp.get("/admin/ping")
 @auth_required
 @role_required("ADMIN")
 def admin_ping():

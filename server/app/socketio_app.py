@@ -1,7 +1,7 @@
 from flask_socketio import SocketIO, join_room
 from flask import request
 
-socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
 
 def register_ws_handlers():
     @socketio.on("connect")

@@ -1,4 +1,6 @@
 import requests
+import os
+
 from flask import Blueprint, request, jsonify, abort
 from app.socketio_app import socketio
 
