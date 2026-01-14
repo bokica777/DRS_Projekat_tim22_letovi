@@ -58,7 +58,7 @@ useEffect(() => {
     []
   );
   const handleBuy = async (flightId: number) => {
-    if (!user || !hasRole(["USER"])) return;
+    if (!user || !hasRole(["KORISNIK"])) return;
 
     setProcessingFlightIds((prev) => [...prev, flightId]);
     try {

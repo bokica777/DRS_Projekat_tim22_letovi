@@ -27,7 +27,7 @@ export default function ManagerCreateFlightPage() {
         });
     }, []);
 
-    if (!user || !hasRole(["MANAGER"])) {
+    if (!user || !hasRole(["MENADZER"])) {
         return <div style={{ padding: 16 }}>Nemaš pristup ovoj stranici.</div>;
     }
 

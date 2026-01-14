@@ -12,7 +12,7 @@ import TopUpPage from "./pages/TopUp";
 import ManagerMyFlightsPage from "./pages/ManagerMyFlights";
 import ManagerEditFlightPage from "./pages/ManagerEditFlight";
 import AdminReportsPage from "./pages/AdminReports";
-
+import WSTest from "./pages/WSTest";
 
 function TopBar() {
   const { user, logout } = useAuth();
@@ -33,8 +33,8 @@ function TopBar() {
         <Link to="/topup">Uplata</Link>
         {user?.role === "ADMIN" && <Link to="/admin/ratings">Ocene</Link>}
         {user?.role === "ADMIN" && <Link to="/admin/pending">Na čekanju</Link>}
-        {user?.role === "MANAGER" && <Link to="/manager/flights/new">Novi let</Link>}
-        {user?.role === "MANAGER" && <Link to="/manager/flights">Moji letovi</Link>}
+        {user?.role === "MENADZER" && <Link to="/manager/flights/new">Novi let</Link>}
+        {user?.role === "MENADZER" && <Link to="/manager/flights">Moji letovi</Link>}
         {user?.role === "ADMIN" && <Link to="/admin/reports">Izveštaji</Link>}
 
 
@@ -108,7 +108,7 @@ export default function App() {
         <Route
           path="/manager/flights/new"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerCreateFlightPage />
             </ProtectedRoute>
           }
@@ -124,7 +124,7 @@ export default function App() {
         <Route
           path="/manager/flights"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerMyFlightsPage />
             </ProtectedRoute>
           }
@@ -133,7 +133,7 @@ export default function App() {
         <Route
           path="/manager/flights/:id/edit"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerEditFlightPage />
             </ProtectedRoute>
           }
@@ -148,6 +148,7 @@ export default function App() {
         />
 
         <Route path="*" element={<LoginPage />} />
+        <Route path="/ws-test" element={<WSTest />} />
       </Routes>
     </div>
   );

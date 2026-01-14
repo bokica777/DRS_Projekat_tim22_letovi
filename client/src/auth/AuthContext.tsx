@@ -17,15 +17,15 @@ function mockUserForEmail(email: string): User {
   // quick mock: admin ako email sadrži "admin", manager ako sadrži "manager"
   const lower = email.toLowerCase();
   const role: Role = lower.includes("admin")
-    ? "ADMIN"
-    : lower.includes("manager")
-    ? "MANAGER"
-    : "USER";
+  ? "ADMIN"
+  : lower.includes("manager")
+  ? "MENADZER"
+  : "KORISNIK";
 
   return {
     id: 1,
     email,
-    firstName: role === "ADMIN" ? "Admin" : role === "MANAGER" ? "Manager" : "User",
+    firstName: role === "ADMIN" ? "Admin" : role === "MENADZER" ? "Manager" : "User",
     lastName: "Demo",
     role,
     balance: 200,

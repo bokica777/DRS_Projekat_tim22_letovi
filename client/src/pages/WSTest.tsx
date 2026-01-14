@@ -17,7 +17,18 @@ export default function WSTest() {
 
     const addLog = (msg: string) => setLogs((p) => [msg, ...p]);
 
-    socket.on("connect", () => addLog(`connected: ${socket.id}`));
+    socket.on("connect", () => {
+  addLog(`connected: ${socket.id}`);
+
+
+  socket.emit(
+    "ping",
+    { time: Date.now(), from: "WSTest" },
+    (ack: any) => {
+      addLog(`ping ack: ${JSON.stringify(ack)}`);
+    }
+  );
+});
     socket.on("connect_error", (err) => addLog(`connect_error: ${err.message}`));
 
     events.forEach((ev) => {

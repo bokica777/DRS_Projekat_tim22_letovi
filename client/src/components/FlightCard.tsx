@@ -16,7 +16,7 @@ export function FlightCard({ flight, onBuy, onCancel, isBuying }: Props) {
 
   const canBuy =
     user &&
-    hasRole(["USER"]) &&
+    hasRole(["KORISNIK"]) &&
     flight.status === "PLANNED";
 
   const canCancel =
@@ -96,13 +96,13 @@ export function FlightCard({ flight, onBuy, onCancel, isBuying }: Props) {
 
         </div>
       )}
-      {user && hasRole(["MANAGER"]) && flight.status === "REJECTED" && flight.rejectionReason && (
+      {user && hasRole(["MENADZER"]) && flight.status === "REJECTED" && flight.rejectionReason && (
         <div style={{ fontSize: 12, color: "crimson" }}>
           Odbijen: {flight.rejectionReason}
         </div>
       )}
 
-      {user && hasRole(["USER"]) && flight.status === "FINISHED" && (
+      {user && hasRole(["KORISNIK"]) && flight.status === "FINISHED" && (
         <RateFlight flightId={flight.id} userEmail={user.email} />
       )}
 
