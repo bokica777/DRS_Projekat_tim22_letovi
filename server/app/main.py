@@ -17,9 +17,23 @@ def create_app():
     app.config["SECRET_KEY"] = "dev"
 
     # -----------------
-    # DB1 konekcija
+    # DB1 konekcija (POSTGRES ONLY)
     # -----------------
-    db_url = os.getenv("DATABASE_URL", "sqlite:///db1_users.sqlite3")
+    db_url = os.getenv("DATABASE_URL")
+
+    if not db_url:
+        raise RuntimeError(
+            "DATABASE_URL nije postavljen! "
+            "Server ne sme koristiti SQLite. "
+            "Postavi DATABASE_URL na Postgres (DB1)."
+        )
+
+    if db_url.startswith("sqlite"):
+        raise RuntimeError(
+            "ZABRANJENO: SQLite je detektovan. "
+            "DATABASE_URL mora pokazivati na Postgres (DB1)."
+        )
+
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -31,9 +45,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(admin_bp, url_prefix="/api")
-    app.register_blueprint(flights_bp)  # flights.py već ima url_prefix="/api"
-
-
+    app.register_blueprint(flights_bp)  # flights.py već ima /api prefix
 
     # -----------------
     # Health ruta
@@ -43,7 +55,7 @@ def create_app():
         return jsonify({"status": "server ok"})
 
     # -----------------
-    # Kreiranje tabela
+    # Kreiranje tabela (DB1)
     # -----------------
     with app.app_context():
         db.create_all()
@@ -60,4 +72,10 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socketio.run(
+        app,
+        host="0.0.0.0",
+        port=5000,
+        debug=True,
+        allow_unsafe_werkzeug=True,
+    )
