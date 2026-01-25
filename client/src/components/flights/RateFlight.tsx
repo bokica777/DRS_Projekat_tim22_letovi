@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyRatingForFlight, submitRating } from "../mocks/ratings";
+import { getMyRatingForFlight, submitRating } from "../../mocks/ratings";
 import { StarRating } from "./StarRating";
 
 

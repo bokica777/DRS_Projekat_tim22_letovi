@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listAirlines } from "../mocks/handlers";
-import type { Airline, Flight } from "../types/flights";
-import { addFlight, getFlights } from "../mocks/flightStore";
-import { useAuth } from "../auth/AuthContext";
+import { listAirlines } from "../../mocks/handlers";
+import type { Airline, Flight } from "../../types/flights";
+import { addFlight, getFlights } from "../../mocks/flightStore";
+import { useAuth } from "../../auth/AuthContext";
 
 export default function ManagerCreateFlightPage() {
     const nav = useNavigate();

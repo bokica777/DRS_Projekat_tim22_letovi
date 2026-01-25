@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatRemaining, getRemainingSeconds } from "../utils/time";
+import { formatRemaining, getRemainingSeconds } from "../../utils/time";
 
 type Props = {
   departureTime: string;

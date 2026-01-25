@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../auth/AuthContext";
+import { Button } from "../../components/common/Button";
 
 export default function LoginPage() {
   const nav = useNavigate();
@@ -43,17 +44,8 @@ export default function LoginPage() {
           style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
         />
         {err && <div style={{ color: "crimson" }}>{err}</div>}
-        <button
-          disabled={loading}
-          style={{
-            padding: 10,
-            borderRadius: 10,
-            border: "1px solid #ddd",
-            cursor: "pointer",
-          }}
-        >
-          {loading ? "Prijava..." : "Prijavi se"}
-        </button>
+        <Button variant="primary">Test</Button>
+
       </form>
 
       <div style={{ marginTop: 12, color: "#555" }}>

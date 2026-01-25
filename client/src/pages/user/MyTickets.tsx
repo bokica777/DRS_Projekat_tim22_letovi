@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { Flight } from "../types/flights";
-import type { Purchase } from "../types/purchases";
-import { getMyPurchases } from "../mocks/purchases";
-import { mockFlights } from "../mocks/db";
+import type { Flight } from "../../types/flights";
+import type { Purchase } from "../../types/purchases";
+import { getMyPurchases } from "../../mocks/purchases";
+import { mockFlights } from "../../mocks/db";
 
 export default function MyTicketsPage() {
   const [items, setItems] = useState<Purchase[]>([]);

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import type { Flight } from "../types/flights";
-import { getFlights, subscribeFlights } from "../mocks/flightStore";
+import { useAuth } from "../../auth/AuthContext";
+import type { Flight } from "../../types/flights";
+import { getFlights, subscribeFlights } from "../../mocks/flightStore";
 
 export default function ManagerMyFlightsPage() {
   const { user, hasRole } = useAuth();

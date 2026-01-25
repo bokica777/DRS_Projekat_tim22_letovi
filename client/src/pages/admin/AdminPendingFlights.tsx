@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { mockFlights } from "../mocks/db";
-import type { Flight } from "../types/flights";
+import { mockFlights } from "../../mocks/db";
+import type { Flight } from "../../types/flights";
 
 export default function AdminPendingFlights() {
   const [flights, setFlights] = useState<Flight[]>(

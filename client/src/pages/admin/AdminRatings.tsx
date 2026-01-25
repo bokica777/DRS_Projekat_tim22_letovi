@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { listAllRatings } from "../mocks/ratings";
-import type { Rating } from "../types/ratings";
-import { mockFlights } from "../mocks/db";
+import { listAllRatings } from "../../mocks/ratings";
+import type { Rating } from "../../types/ratings";
+import { mockFlights } from "../../mocks/db";
 
 export default function AdminRatingsPage() {
   const [items, setItems] = useState<Rating[]>([]);

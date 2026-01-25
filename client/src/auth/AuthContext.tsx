@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import type { User, Role } from "../types/auth";
+import { ensureSeedUsers, listUsers } from "../mocks/usersStore";
+
+ensureSeedUsers();
 
 type AuthState = {
   user: User | null;
@@ -14,7 +17,6 @@ const TOKEN_KEY = "access_token";
 const USER_KEY = "mock_user";
 
 function mockUserForEmail(email: string): User {
-  // quick mock: admin ako email sadrži "admin", manager ako sadrži "manager"
   const lower = email.toLowerCase();
   const role: Role = lower.includes("admin")
     ? "ADMIN"
@@ -28,9 +30,18 @@ function mockUserForEmail(email: string): User {
     firstName: role === "ADMIN" ? "Admin" : role === "MANAGER" ? "Manager" : "User",
     lastName: "Demo",
     role,
+
+    dateOfBirth: "2000-01-01",
+    gender: "OTHER",
+    country: "Serbia",
+    street: "Demo",
+    streetNumber: "1",
+
     balance: 200,
+    avatarDataUrl: undefined,
   };
 }
+
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -38,19 +49,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return raw ? (JSON.parse(raw) as User) : null;
   });
 
-  const login = async (email: string, password: string) => {
-    // mock validacija
-    if (!email.includes("@") || password.length < 4) {
-      throw new Error("Neispravan email ili lozinka.");
-    }
-    // simulacija čekanja
-    await new Promise((r) => setTimeout(r, 600));
+ const login = async (email: string, password: string) => {
+  if (!email.includes("@") || password.length < 4) {
+    throw new Error("Neispravan email ili lozinka.");
+  }
+  await new Promise((r) => setTimeout(r, 600));
 
-    const u = mockUserForEmail(email);
-    localStorage.setItem(TOKEN_KEY, "mock-jwt-token");
-    localStorage.setItem(USER_KEY, JSON.stringify(u));
-    setUser(u);
-  };
+  const users = await listUsers();
+  const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (!found) throw new Error("Korisnik ne postoji. Registruj se.");
+
+  localStorage.setItem(TOKEN_KEY, "mock-jwt-token");
+  localStorage.setItem(USER_KEY, JSON.stringify(found));
+  setUser(found);
+};
+
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);

@@ -1,4 +1,4 @@
-import type { Airline } from "../types/flights";
+import type { Airline } from "../../types/flights";
 
 type Props = {
   airlines: Airline[];

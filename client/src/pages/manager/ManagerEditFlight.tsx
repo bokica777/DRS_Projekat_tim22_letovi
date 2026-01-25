@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import type { Flight } from "../types/flights";
-import { getFlights, setFlights } from "../mocks/flightStore";
+import { useAuth } from "../../auth/AuthContext";
+import type { Flight } from "../../types/flights";
+import { getFlights, setFlights } from "../../mocks/flightStore";
 
 export default function ManagerEditFlightPage() {
   const { id } = useParams();
