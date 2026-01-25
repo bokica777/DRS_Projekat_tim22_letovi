@@ -24,7 +24,7 @@ export default function ManagerMyFlightsPage() {
     return subscribeFlights(sync);
   }, [user?.email]);
 
-  if (!user || !hasRole(["MANAGER"])) {
+  if (!user || !hasRole(["MENADZER"])) {
     return <div style={{ padding: 16 }}>Nemaš pristup.</div>;
   }
 

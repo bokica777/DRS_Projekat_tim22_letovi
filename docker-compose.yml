@@ -1,14 +1,75 @@
-version: "3.9"
-
 services:
-  server:
-    build: ./server
+  db1:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db1
     ports:
-      - "5000:5000"
+      - "5433:5432"
+    volumes:
+      - db1_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  db2:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db2
+    ports:
+      - "5432:5432"
+    volumes:
+      - db2_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db2"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
 
   flight-service:
     build: ./flight-service
     ports:
       - "5001:5001"
+    environment:
+      DB2_URL: "postgresql+psycopg2://postgres:postgres@db2:5432/db2"
+    depends_on:
+      db2:
+        condition: service_healthy
+    # Ako flight-service ima /health rutu, ostavi. Ako nema - obriši ovaj blok.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:5001/health'').read()"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
 
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      FLIGHT_SERVICE_URL: "http://flight-service:5001"
+      DATABASE_URL: "postgresql+psycopg2://postgres:postgres@db1:5432/db1"
+    depends_on:
+      db1:
+        condition: service_healthy
+      flight-service:
+        condition: service_started
+        # Ako si ostavila healthcheck za flight-service i radi, možeš da staviš:
+        # condition: service_healthy
+    restart: unless-stopped
 
+volumes:
+  db1_data:
+  db2_data:

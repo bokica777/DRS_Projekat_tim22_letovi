@@ -1,5 +1,4 @@
-export type Role = "USER" | "MANAGER" | "ADMIN";
-export type Gender = "M" | "F" | "OTHER";
+export type Role = "KORISNIK" | "MENADZER" | "ADMIN"
 
 export type User = {
   id: number;

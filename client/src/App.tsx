@@ -4,17 +4,17 @@ import LoginPage from "./pages/public/Login";
 import RegisterPage from "./pages/public/Register";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
-import MyTicketsPage from "./pages/user/MyTickets";
-import AdminRatingsPage from "./pages/admin/AdminRatings";
-import AdminPendingFlights from "./pages/admin/AdminPendingFlights";
-import ManagerCreateFlightPage from "./pages/manager/ManagerCreateFlight";
-import TopUpPage from "./pages/user/TopUp";
-import ManagerMyFlightsPage from "./pages/manager/ManagerMyFlights";
-import ManagerEditFlightPage from "./pages/manager/ManagerEditFlight";
-import AdminReportsPage from "./pages/admin/AdminReports";
-import ProfilePage from "./pages/user/Profile";
+import MyTicketsPage from "./pages/MyTickets";
+import AdminRatingsPage from "./pages/AdminRatings";
+import AdminPendingFlights from "./pages/AdminPendingFlights";
+import ManagerCreateFlightPage from "./pages/ManagerCreateFlight";
+import TopUpPage from "./pages/TopUp";
+import ManagerMyFlightsPage from "./pages/ManagerMyFlights";
+import ManagerEditFlightPage from "./pages/ManagerEditFlight";
+import AdminReportsPage from "./pages/AdminReports";
+import WSTest from "./pages/WSTest";
 import AdminUsersPage from "./pages/admin/AdminUsers";
-
+import ProfilePage from "./pages/user/Profile";
 
 function TopBar() {
   const { user, logout } = useAuth();
@@ -35,8 +35,8 @@ function TopBar() {
         <Link to="/topup">Uplata</Link>
         {user?.role === "ADMIN" && <Link to="/admin/ratings">Ocene</Link>}
         {user?.role === "ADMIN" && <Link to="/admin/pending">Na čekanju</Link>}
-        {user?.role === "MANAGER" && <Link to="/manager/flights/new">Novi let</Link>}
-        {user?.role === "MANAGER" && <Link to="/manager/flights">Moji letovi</Link>}
+        {user?.role === "MENADZER" && <Link to="/manager/flights/new">Novi let</Link>}
+        {user?.role === "MENADZER" && <Link to="/manager/flights">Moji letovi</Link>}
         {user?.role === "ADMIN" && <Link to="/admin/reports">Izveštaji</Link>}
         {user && <Link to="/profile">Profil</Link>}
         {user?.role === "ADMIN" && <Link to="/admin/users">Korisnici</Link>}
@@ -111,7 +111,7 @@ export default function App() {
         <Route
           path="/manager/flights/new"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerCreateFlightPage />
             </ProtectedRoute>
           }
@@ -127,7 +127,7 @@ export default function App() {
         <Route
           path="/manager/flights"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerMyFlightsPage />
             </ProtectedRoute>
           }
@@ -136,7 +136,7 @@ export default function App() {
         <Route
           path="/manager/flights/:id/edit"
           element={
-            <ProtectedRoute roles={["MANAGER"]}>
+            <ProtectedRoute roles={["MENADZER"]}>
               <ManagerEditFlightPage />
             </ProtectedRoute>
           }
@@ -168,6 +168,7 @@ export default function App() {
         />
 
         <Route path="*" element={<LoginPage />} />
+        <Route path="/ws-test" element={<WSTest />} />
       </Routes>
     </div>
   );

@@ -18,7 +18,7 @@ export default function ManagerEditFlightPage() {
   const [name, setName] = useState(flight?.name ?? "");
   const [price, setPrice] = useState<number>(flight?.price ?? 100);
 
-  if (!user || !hasRole(["MANAGER"])) return <div style={{ padding: 16 }}>Nemaš pristup.</div>;
+  if (!user || !hasRole(["MENADZER"])) return <div style={{ padding: 16 }}>Nemaš pristup.</div>;
   if (!flight) return <div style={{ padding: 16 }}>Let nije pronađen.</div>;
 
   const save = (e: React.FormEvent) => {

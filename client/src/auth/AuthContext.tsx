@@ -21,13 +21,14 @@ function mockUserForEmail(email: string): User {
   const role: Role = lower.includes("admin")
     ? "ADMIN"
     : lower.includes("manager")
-    ? "MANAGER"
-    : "USER";
+    ? "MENADZER"
+    : "KORISNIK";
 
   return {
     id: 1,
     email,
-    firstName: role === "ADMIN" ? "Admin" : role === "MANAGER" ? "Manager" : "User",
+    firstName:
+      role === "ADMIN" ? "Admin" : role === "MENADZER" ? "Manager" : "User",
     lastName: "Demo",
     role,
 

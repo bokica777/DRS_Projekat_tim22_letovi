@@ -2,7 +2,7 @@ export const API_BASE = "/api";
 
 export const endpoints = {
   auth: {
-    register: `${API_BASE}/auth/register`,
+    register: `${API_BASE}/users/register`, //umesto
     login: `${API_BASE}/auth/login`,
     logout: `${API_BASE}/auth/logout`,
     me: `${API_BASE}/auth/me`,
