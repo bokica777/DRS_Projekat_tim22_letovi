@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import type { User, Role } from "../types/auth";
-import { ensureSeedUsers, listUsers } from "../mocks/usersStore";
-
-ensureSeedUsers();
+import { apiLogin } from "../api/auth";
 
 type AuthState = {
   user: User | null;
@@ -13,36 +11,33 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const TOKEN_KEY = "access_token";
-const USER_KEY = "mock_user";
+const TOKEN_KEY = "token";
+const USER_KEY = "auth_user";
 
-function mockUserForEmail(email: string): User {
-  const lower = email.toLowerCase();
-  const role: Role = lower.includes("admin")
-    ? "ADMIN"
-    : lower.includes("manager")
-    ? "MENADZER"
-    : "KORISNIK";
-
+function mapBackendUserToFrontend(u: {
+  id: number;
+  email: string;
+  role: Role;
+  first_name: string;
+  last_name: string;
+}): User {
   return {
-    id: 1,
-    email,
-    firstName:
-      role === "ADMIN" ? "Admin" : role === "MENADZER" ? "Manager" : "User",
-    lastName: "Demo",
-    role,
+    id: u.id,
+    email: u.email,
+    role: u.role,
+    firstName: u.first_name,
+    lastName: u.last_name,
 
-    dateOfBirth: "2000-01-01",
-    gender: "OTHER",
-    country: "Serbia",
-    street: "Demo",
-    streetNumber: "1",
+    dateOfBirth: "",
+    gender: "OSTALO",
+    country: "",
+    street: "",
+    streetNumber: "",
 
-    balance: 200,
+    balance: 0,
     avatarDataUrl: undefined,
   };
 }
-
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -50,21 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return raw ? (JSON.parse(raw) as User) : null;
   });
 
- const login = async (email: string, password: string) => {
-  if (!email.includes("@") || password.length < 4) {
-    throw new Error("Neispravan email ili lozinka.");
-  }
-  await new Promise((r) => setTimeout(r, 600));
+  const login = async (email: string, password: string) => {
+    const res = await apiLogin(email, password);
 
-  const users = await listUsers();
-  const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (!found) throw new Error("Korisnik ne postoji. Registruj se.");
+    localStorage.setItem(TOKEN_KEY, res.token);
 
-  localStorage.setItem(TOKEN_KEY, "mock-jwt-token");
-  localStorage.setItem(USER_KEY, JSON.stringify(found));
-  setUser(found);
-};
+    const mapped = mapBackendUserToFrontend(res.user);
+    localStorage.setItem(USER_KEY, JSON.stringify(mapped));
 
+    setUser(mapped);
+  };
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Airline, Flight, FlightStatus } from "../types/flights";
 import { listAirlines, listFlights } from "../mocks/handlers";
-import { SearchBar } from "../components/SearchBar";
-import { AirlineSelect } from "../components/AirlineSelect";
-import { FlightCard } from "../components/FlightCard";
+import { SearchBar } from "../components/flights/SearchBar";
+import { AirlineSelect } from "../components/flights/AirlineSelect";
+import { FlightCard } from "../components/flights/FlightCard";
 import { createPurchase } from "../mocks/purchases";
 import { useAuth } from "../auth/AuthContext";
 
