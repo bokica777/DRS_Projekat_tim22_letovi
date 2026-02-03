@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState(""); // mock validacija
 
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState<Gender>("OTHER");
+  const [gender, setGender] = useState<Gender>("OSTALO");
   const [country, setCountry] = useState("");
   const [street, setStreet] = useState("");
   const [streetNumber, setStreetNumber] = useState("");
