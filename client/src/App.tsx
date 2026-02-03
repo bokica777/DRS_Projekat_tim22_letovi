@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
 import FlightsPage from "./pages/user/Flights";
 import LoginPage from "./pages/public/Login";
 import RegisterPage from "./pages/public/Register";
@@ -69,9 +69,13 @@ function TopBar() {
 }
 
 export default function App() {
+  const location = useLocation();
+
+  const hideTopBar = ["/login", "/register"].includes(location.pathname);
+
   return (
     <div>
-      <TopBar />
+      {!hideTopBar && <TopBar />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
