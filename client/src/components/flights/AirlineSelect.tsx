@@ -1,4 +1,5 @@
 import type { Airline } from "../../types/flights";
+import { Select } from "../common/Select";
 
 type Props = {
   airlines: Airline[];
@@ -8,10 +9,10 @@ type Props = {
 
 export function AirlineSelect({ airlines, value, onChange }: Props) {
   return (
-    <select
+    <Select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", width: "100%" }}
+      className="rounded-2xl"
     >
       <option value="">Sve avio kompanije</option>
       {airlines.map((a) => (
@@ -19,6 +20,6 @@ export function AirlineSelect({ airlines, value, onChange }: Props) {
           {a.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import { Label } from "../../components/common/Label";
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const nav = useNavigate();
@@ -11,15 +13,40 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({
+    email: false,
+    password: false,
+  });
+
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const emailError = useMemo(() => {
+    const v = email.trim();
+    if (!v) return "Email je obavezan.";
+    if (!emailRegex.test(v)) return "Unesi ispravan email (npr. user@test.com).";
+    return null;
+  }, [email]);
+
+  const passwordError = useMemo(() => {
+    const v = password;
+    if (!v) return "Lozinka je obavezna.";
+    if (v.length < 4) return "Lozinka mora imati bar 4 karaktera.";
+    return null;
+  }, [password]);
+
+  const formValid = !emailError && !passwordError;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
+    setTouched({ email: true, password: true });
+    if (!formValid) return;
+
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       nav("/flights");
     } catch (ex: any) {
       setErr(ex?.message ?? "Greška pri prijavi.");
@@ -28,15 +55,15 @@ export default function LoginPage() {
     }
   };
 
+  const emailInvalid = touched.email && !!emailError;
+  const passwordInvalid = touched.password && !!passwordError;
+
   return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 py-10">
-      {/* Card */}
-      <div className="w-full max-w-5xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg">
+      <div className="w-full max-w-6xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-2">
-          {/* LEFT: Image/Brand panel */}
           <div className="relative hidden md:block">
-            {/* Pozadina “aviokompanija vibe” */}
-            <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800" />
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-500 via-blue-700 to-indigo-800" />
 
             <img
               src="/src/assets/login.png"
@@ -44,7 +71,6 @@ export default function LoginPage() {
               alt="DRS Fly"
             />
             <div className="absolute inset-0 bg-gradient-to-br from-sky-700/80 via-blue-800/75 to-indigo-900/80" />
-
 
             <div className="relative z-10 p-10 h-full flex flex-col justify-between text-white">
               <div>
@@ -66,7 +92,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* RIGHT: Form */}
           <div className="p-6 sm:p-10">
             <div className="md:hidden mb-6">
               <div className="text-xs tracking-widest uppercase text-gray-500">
@@ -90,8 +115,13 @@ export default function LoginPage() {
                   placeholder="npr. admin@test.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setTouched((p) => ({ ...p, email: true }))}
                   autoComplete="email"
+                  className={emailInvalid ? "border-red-300 focus:ring-red-200 focus:border-red-300" : ""}
                 />
+                {emailInvalid && (
+                  <div className="text-xs text-red-600">{emailError}</div>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -101,8 +131,13 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((p) => ({ ...p, password: true }))}
                   autoComplete="current-password"
+                  className={passwordInvalid ? "border-red-300 focus:ring-red-200 focus:border-red-300" : ""}
                 />
+                {passwordInvalid && (
+                  <div className="text-xs text-red-600">{passwordError}</div>
+                )}
               </div>
 
               {err && (
@@ -113,7 +148,7 @@ export default function LoginPage() {
 
               <Button
                 variant="primary"
-                disabled={loading}
+                disabled={loading || !formValid}
                 className="w-full rounded-xl py-2.5"
                 type="submit"
               >

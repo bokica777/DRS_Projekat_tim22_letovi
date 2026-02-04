@@ -1,3 +1,5 @@
+import { Input } from "../common/Input";
+
 type Props = {
   value: string;
   onChange: (v: string) => void;
@@ -5,11 +7,11 @@ type Props = {
 
 export function SearchBar({ value, onChange }: Props) {
   return (
-    <input
+    <Input
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Pretraga po imenu leta ili kompaniji…"
-      style={{ padding: 10, width: "100%", borderRadius: 10, border: "1px solid #ddd" }}
+      className="rounded-2xl"
     />
   );
 }
