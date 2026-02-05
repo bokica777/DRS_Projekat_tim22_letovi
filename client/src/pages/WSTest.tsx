@@ -5,7 +5,15 @@ export default function WSTest() {
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
-    const socket = createSocket("http://localhost:5000", "admin1", "ADMIN");
+    const addLog = (msg: string) => setLogs((p) => [msg, ...p]);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      addLog("❌ nema tokena u localStorage (uloguj se prvo)");
+      return;
+    }
+
+    const socket = createSocket("http://localhost:5000", token);
 
     const events = [
       "flight.created.pending",
@@ -15,20 +23,13 @@ export default function WSTest() {
       "flight.status.changed",
     ] as const;
 
-    const addLog = (msg: string) => setLogs((p) => [msg, ...p]);
-
     socket.on("connect", () => {
-  addLog(`connected: ${socket.id}`);
+      addLog(`connected: ${socket.id}`);
+      socket.emit("ping", { time: Date.now(), from: "WSTest" }, (ack: any) => {
+        addLog(`ping ack: ${JSON.stringify(ack)}`);
+      });
+    });
 
-
-  socket.emit(
-    "ping",
-    { time: Date.now(), from: "WSTest" },
-    (ack: any) => {
-      addLog(`ping ack: ${JSON.stringify(ack)}`);
-    }
-  );
-});
     socket.on("connect_error", (err) => addLog(`connect_error: ${err.message}`));
 
     events.forEach((ev) => {
@@ -36,7 +37,6 @@ export default function WSTest() {
     });
 
     return () => {
-      // cleanup mora da bude void
       socket.removeAllListeners();
       socket.disconnect();
     };
