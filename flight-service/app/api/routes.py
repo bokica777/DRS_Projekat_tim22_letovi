@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify, abort
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timezone
+from multiprocessing import Process
 
-from app.db.models import Flight, Company, FlightStatus, ApprovalStatus
+from app.db.models import Flight, Company, FlightStatus, ApprovalStatus, Ticket
+from app.scheduler.ticket_process import process_ticket_purchase
 
 bp = Blueprint("flight_internal", __name__, url_prefix="/internal")
 
@@ -26,8 +28,19 @@ def flight_to_dto(f: Flight):
     }
 
 
+def ticket_to_dto(t: Ticket):
+    f = t.flight
+    return {
+        "id": t.id,
+        "user_id": t.user_id,
+        "flight_id": t.flight_id,
+        "price": float(t.price),
+        "created_at": t.created_at.isoformat() if t.created_at else None,
+        "flight": flight_to_dto(f) if f else None,
+    }
+
+
 def _enum_member(enum_cls, name: str):
-    # bezbedno uzimanje enum vrednosti (ako postoji)
     return getattr(enum_cls, name, None)
 
 
@@ -51,26 +64,21 @@ def list_flights():
 
     q = db.query(Flight).join(Company)
 
-    # ---- tab mapping (bezbedno, radi i ako nema svih statusa u enumu) ----
-    # pending: approval_status = PENDING
     if tab == "pending":
         q = q.filter(Flight.approval_status == ApprovalStatus.PENDING)
 
-    # planned: status=PLANNED + approval=APPROVED
     elif tab == "planned":
         planned = _enum_member(FlightStatus, "PLANNED")
         if planned is not None:
             q = q.filter(Flight.status == planned)
         q = q.filter(Flight.approval_status == ApprovalStatus.APPROVED)
 
-    # in_progress: status=IN_PROGRESS (ako postoji) + approval=APPROVED
     elif tab == "in_progress":
         in_prog = _enum_member(FlightStatus, "IN_PROGRESS")
         if in_prog is not None:
             q = q.filter(Flight.status == in_prog)
         q = q.filter(Flight.approval_status == ApprovalStatus.APPROVED)
 
-    # history: FINISHED/CANCELLED (ako postoje)
     elif tab == "history":
         finished = _enum_member(FlightStatus, "FINISHED")
         cancelled = _enum_member(FlightStatus, "CANCELLED")
@@ -87,7 +95,6 @@ def list_flights():
         if cancelled is not None:
             q = q.filter(Flight.status == cancelled)
 
-    # ---- direct filters (ako frontend šalje status/approval) ----
     if status_q:
         enum_val = _enum_member(FlightStatus, status_q)
         if enum_val is not None:
@@ -129,14 +136,12 @@ def get_flight(flight_id: int):
     f = db.get(Flight, flight_id)
     if not f:
         abort(404)
-    # osiguraj company relaciju
     _ = f.company
     return jsonify(flight_to_dto(f)), 200
 
 
 @bp.post("/flights")
 def create_flight():
-    # OVO POZIVA SERVER (ne direktno klijent)
     db: Session = request.environ["db"]
 
     data = request.get_json(force=True) or {}
@@ -223,7 +228,6 @@ def cancel_flight(flight_id: int):
     if not f:
         abort(404)
 
-    # samo ako nije počeo (kod tebe: PLANNED)
     planned = _enum_member(FlightStatus, "PLANNED")
     if planned is not None and f.status != planned:
         abort(409, "Only PLANNED flights can be cancelled")
@@ -231,8 +235,79 @@ def cancel_flight(flight_id: int):
     cancelled = _enum_member(FlightStatus, "CANCELLED")
     if cancelled is None:
         abort(500, "CANCELLED status missing in FlightStatus enum")
+
     f.status = cancelled
     db.commit()
     db.refresh(f)
     _ = f.company
     return jsonify(flight_to_dto(f)), 200
+
+
+# =========================
+# TICKETS (ASYNC)
+# =========================
+
+@bp.post("/tickets/buy")
+def buy_ticket():
+    db: Session = request.environ["db"]
+    data = request.get_json(force=True) or {}
+
+    user_id = str(data.get("user_id") or "").strip()
+    flight_id = data.get("flight_id")
+
+    if not user_id:
+        abort(400, "Missing field user_id")
+    if flight_id is None:
+        abort(400, "Missing field flight_id")
+
+    try:
+        flight_id = int(flight_id)
+    except Exception:
+        abort(400, "flight_id must be int")
+
+    f = db.get(Flight, flight_id)
+    if not f:
+        abort(404, "Flight not found")
+
+    if f.approval_status != ApprovalStatus.APPROVED:
+        abort(409, "Flight is not APPROVED")
+
+    cancelled = _enum_member(FlightStatus, "CANCELLED")
+    if cancelled is not None and f.status == cancelled:
+        abort(409, "Flight is CANCELLED")
+
+    now = datetime.now(timezone.utc)
+    dep = f.departure_time
+    if dep.tzinfo is None:
+        dep = dep.replace(tzinfo=timezone.utc)
+
+    if dep <= now:
+        abort(409, "Flight already started")
+
+    # ASYNC: start process, vrati odmah 202
+    p = Process(target=process_ticket_purchase, args=(user_id, flight_id, 5), daemon=True)
+    p.start()
+
+    return jsonify({"message": "Purchase queued", "user_id": user_id, "flight_id": flight_id}), 202
+
+
+@bp.get("/tickets/my")
+def my_tickets():
+    db: Session = request.environ["db"]
+    user_id = str((request.args.get("user_id") or "")).strip()
+    if not user_id:
+        abort(400, "user_id is required")
+
+    tickets = (
+        db.query(Ticket)
+        .filter(Ticket.user_id == user_id)
+        .order_by(Ticket.created_at.desc())
+        .all()
+    )
+
+    for t in tickets:
+        _ = t.flight
+        if t.flight:
+            _ = t.flight.company
+
+    return jsonify([ticket_to_dto(t) for t in tickets]), 200

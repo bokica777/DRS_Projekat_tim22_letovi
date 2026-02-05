@@ -2,52 +2,63 @@ import os
 from flask import Flask, request
 from multiprocessing import Process
 
-# 1) Blueprint sa internim rutama
-# Očekujem da imaš: flight-service/app/api/routes.py -> bp = Blueprint(...)
-from app.api.routes import bp as internal_flights_bp
+# Internal API (flights + uskoro tickets)
+from app.api.routes import bp as internal_bp
 
-# 2) DB engine + SessionLocal + init schema
-# Očekujem da imaš: flight-service/app/db/database.py (ili slično)
-# Ako ti se fajl drugačije zove, javi pa prilagodim import.
+# DB engine + session + init
 from app.db.database import engine, SessionLocal, init_db
 
-# 3) Scheduler proces
-# Očekujem da imaš: flight-service/app/scheduler/status_process.py -> run_status_updater(engine)
+# Scheduler za status leta (PLANNED -> IN_PROGRESS -> FINISHED)
 from app.scheduler.status_process import run_status_updater
 
 
 def create_app() -> Flask:
     app = Flask(__name__)
 
-    # --- Health ---
+    # -----------------
+    # Health check
+    # -----------------
     @app.get("/health")
     def health():
         return {"status": "flight-service ok"}
 
-    # --- DB init (kreiranje tabela ako ne postoje) ---
+    # -----------------
+    # DB init (kreira sve tabele ako ne postoje)
+    # -----------------
     init_db()
 
-    # --- DB session po requestu ---
+    # -----------------
+    # DB session po requestu
+    # -----------------
     @app.before_request
     def open_db_session():
-        # dostupno u rutama kao request.environ["db"]
         request.environ["db"] = SessionLocal()
 
     @app.teardown_request
     def close_db_session(exc):
         db = request.environ.get("db")
         if db:
-            if exc:
-                db.rollback()
-            db.close()
+            try:
+                if exc:
+                    db.rollback()
+            finally:
+                db.close()
 
-    # --- Rute ---
-    app.register_blueprint(internal_flights_bp)
+    # -----------------
+    # Rute (internal)
+    # -----------------
+    app.register_blueprint(internal_bp)
 
-    # --- Scheduler proces (planned -> in_progress -> finished) ---
-    # Važno: pokreći scheduler samo u "main" procesu, ne pri reloaderu
+    # -----------------
+    # Background scheduler (status leta)
+    # -----------------
+    # Pokreće se samo jednom (ne duplo zbog reloader-a)
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
-        p = Process(target=run_status_updater, args=(engine,), daemon=True)
+        p = Process(
+            target=run_status_updater,
+            args=(engine,),
+            daemon=True
+        )
         p.start()
 
     return app
@@ -56,6 +67,9 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    # NOTE: kod tebe je bio port 5001; zadržaću 5001 da ne razbije docker-compose.
-    app.run(host="0.0.0.0", port=5001, debug=True)
-
+    # port 5001 (kako ti je već u docker-compose)
+    app.run(
+        host="0.0.0.0",
+        port=5001,
+        debug=True
+    )

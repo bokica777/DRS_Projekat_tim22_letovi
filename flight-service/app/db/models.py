@@ -1,5 +1,6 @@
 import enum
 from datetime import datetime
+
 from sqlalchemy import (
     Column, Integer, String, DateTime, ForeignKey, Numeric, Enum, Text
 )
@@ -7,21 +8,25 @@ from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
+
 class FlightStatus(str, enum.Enum):
     PLANNED = "PLANNED"
     IN_PROGRESS = "IN_PROGRESS"
     FINISHED = "FINISHED"
     CANCELLED = "CANCELLED"
 
+
 class ApprovalStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
+
 class Company(Base):
     __tablename__ = "companies"
     id = Column(Integer, primary_key=True)
     name = Column(String(120), unique=True, nullable=False)
+
 
 class Flight(Base):
     __tablename__ = "flights"
@@ -47,3 +52,24 @@ class Flight(Base):
 
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Ticket(Base):
+    """
+    Kupljena karta (DB2 - flight-service).
+
+    user_id je iz DB1 (server) ali ovde ga cuvamo kao string.
+    price je snapshot cene u trenutku kupovine.
+    """
+    __tablename__ = "tickets"
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(String(64), nullable=False, index=True)
+
+    flight_id = Column(Integer, ForeignKey("flights.id"), nullable=False, index=True)
+    flight = relationship("Flight")
+
+    price = Column(Numeric(10, 2), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
