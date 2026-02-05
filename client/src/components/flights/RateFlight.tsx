@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMyRatingForFlight, submitRating } from "../../mocks/ratings";
 import { StarRating } from "./StarRating";
-
+import { Button } from "../common/Button";
 
 export function RateFlight({
   flightId,
@@ -34,24 +34,21 @@ export function RateFlight({
   };
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
-      <span style={{ fontSize: 12, color: "#666" }}>Ocena:</span>
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <span className="text-xs text-gray-600">Ocena:</span>
       <StarRating value={value} onChange={setValue} disabled={loading} />
-
-      <button
+      <Button
+        type="button"
+        variant="secondary"
         disabled={loading}
         onClick={save}
-        style={{
-          padding: "6px 10px",
-          borderRadius: 8,
-          border: "1px solid #ddd",
-          cursor: "pointer",
-        }}
+        className="rounded-xl px-3 py-1.5 text-xs"
       >
         {loading ? "Čuvam..." : "Sačuvaj"}
-      </button>
-
-      {saved !== null && <span style={{ fontSize: 12, color: "#777" }}>Sačuvano: {saved}/5</span>}
+      </Button>
+      {saved !== null && (
+        <span className="text-xs text-gray-500">Sačuvano: {saved}/5</span>
+      )}
     </div>
   );
 }

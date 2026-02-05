@@ -8,14 +8,15 @@ type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-black text-white border-black hover:opacity-90 active:opacity-80",
-  secondary:
+  "bg-[#1E3A8A] text-white border-[#1E3A8A] hover:bg-[#1D4ED8] hover:border-[#1D4ED8] active:bg-[#1E40AF] active:border-[#1E40AF]",
+secondary:
     "bg-white text-black border-gray-200 hover:bg-gray-50",
   danger:
     "bg-white text-red-600 border-red-200 hover:bg-red-50",
   ghost:
     "bg-transparent text-black border-transparent hover:bg-gray-50",
 };
+
 
 export function Button({ variant = "secondary", className = "", ...props }: Props) {
   return (

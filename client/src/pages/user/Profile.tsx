@@ -2,15 +2,18 @@ import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import type { Gender, User } from "../../types/auth";
 import { updateUser } from "../../mocks/usersStore";
+import { Button } from "../../components/common/Button";
+import { Input } from "../../components/common/Input";
+import { Label } from "../../components/common/Label";
+import { Select } from "../../components/common/Select";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  if (!user) return <div style={{ padding: 16 }}>Nisi ulogovan.</div>;
+  if (!user) return <div className="p-4">Nisi ulogovan.</div>;
 
   const [form, setForm] = useState<User>({ ...user });
-
   const set = <K extends keyof User>(k: K, v: User[K]) => setForm((p) => ({ ...p, [k]: v }));
 
   const onAvatar = (file?: File) => {
@@ -25,94 +28,142 @@ export default function ProfilePage() {
     await updateUser(form);
     setSaving(false);
     alert("Sačuvano ✅");
-    window.location.reload(); // brzo za mock
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: 10,
-    borderRadius: 10,
-    border: "1px solid #ddd",
-    width: "100%",
+    window.location.reload();
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: 16 }}>
-      <h2>Moj profil</h2>
-
-      <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 12 }}>
-        <div style={{ width: 72, height: 72, borderRadius: 999, overflow: "hidden", border: "1px solid #eee" }}>
-          {form.avatarDataUrl ? (
-            <img src={form.avatarDataUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#999" }}>
-              ?
+    <div className="min-h-[calc(100vh-56px)] px-4 py-10">
+      <div className="mx-auto w-full max-w-6xl">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg">
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(255,255,255,.35) 1px, transparent 0)",
+              backgroundSize: "18px 18px",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-700/70 via-blue-800/65 to-indigo-900/70" />
+          <div className="relative z-10 p-6 sm:p-10 text-white">
+            <div className="text-xs tracking-widest uppercase text-white/80">
+              DRS Fly • Profil
             </div>
-          )}
-        </div>
-
-        <div>
-          <label>Slika profila</label>
-          <input type="file" accept="image/*" onChange={(e) => onAvatar(e.target.files?.[0])} />
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label>Ime</label>
-            <input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label>Prezime</label>
-            <input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} style={inputStyle} />
+            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Moj profil
+            </h1>
+            <p className="mt-2 text-sm text-white/85 max-w-2xl">
+              Ažuriraj svoje podatke i sliku profila.
+            </p>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label>Email</label>
-            <input value={form.email} onChange={(e) => set("email", e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label>Datum rođenja</label>
-            <input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} style={inputStyle} />
+        <div className="mt-6 rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <div className="p-4 sm:p-6">
+            {/* Avatar */}
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+              <div className="h-20 w-20 rounded-full overflow-hidden border border-gray-200 bg-gray-50">
+                {form.avatarDataUrl ? (
+                  <img
+                    src={form.avatarDataUrl}
+                    alt="avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full grid place-items-center text-gray-400 font-semibold">
+                    ?
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Slika profila</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => onAvatar(e.target.files?.[0])}
+                  className="text-sm"
+                />
+                <div className="text-xs text-gray-500">
+                  PNG/JPG • preporuka: kvadratna slika
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="mt-6 grid gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Ime</Label>
+                  <Input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className="rounded-2xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Prezime</Label>
+                  <Input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className="rounded-2xl" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Email</Label>
+                  <Input value={form.email} onChange={(e) => set("email", e.target.value)} className="rounded-2xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Datum rođenja</Label>
+                  <Input
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={(e) => set("dateOfBirth", e.target.value)}
+                    className="rounded-2xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Pol</Label>
+                  <Select
+                    value={form.gender as Gender}
+                    onChange={(e) => set("gender", e.target.value as any)}
+                    className="rounded-2xl"
+                  >
+                    <option value="M">M</option>
+                    <option value="Z">Ž</option>
+                    <option value="OSTALO">Ostalo</option>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Država</Label>
+                  <Input value={form.country} onChange={(e) => set("country", e.target.value)} className="rounded-2xl" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2 grid gap-2">
+                  <Label>Ulica</Label>
+                  <Input value={form.street} onChange={(e) => set("street", e.target.value)} className="rounded-2xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Broj</Label>
+                  <Input value={form.streetNumber} onChange={(e) => set("streetNumber", e.target.value)} className="rounded-2xl" />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  variant="primary"
+                  disabled={saving}
+                  onClick={save}
+                  className="rounded-2xl px-5"
+                >
+                  {saving ? "Čuvam..." : "Sačuvaj promene"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label>Pol</label>
-            <select value={form.gender as Gender} onChange={(e) => set("gender", e.target.value as any)} style={inputStyle}>
-              <option value="M">M</option>
-              <option value="F">Ž</option>
-              <option value="OTHER">Drugo</option>
-            </select>
-          </div>
-          <div>
-            <label>Država</label>
-            <input value={form.country} onChange={(e) => set("country", e.target.value)} style={inputStyle} />
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
-          <div>
-            <label>Ulica</label>
-            <input value={form.street} onChange={(e) => set("street", e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label>Broj</label>
-            <input value={form.streetNumber} onChange={(e) => set("streetNumber", e.target.value)} style={inputStyle} />
-          </div>
-        </div>
-
-        <div>
-          <label>Stanje na računu (€)</label>
-          <input type="number" value={form.balance} onChange={(e) => set("balance", Number(e.target.value) as any)} style={inputStyle} />
-        </div>
-
-        <button disabled={saving} onClick={save} style={{ ...inputStyle, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Čuvam..." : "Sačuvaj"}
-        </button>
       </div>
     </div>
   );

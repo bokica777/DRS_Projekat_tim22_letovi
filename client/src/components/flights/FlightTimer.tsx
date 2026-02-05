@@ -19,11 +19,11 @@ export function FlightTimer({ departureTime, durationMinutes }: Props) {
   }, [departureTime, durationMinutes]);
 
   if (remaining <= 0) {
-    return <span style={{ color: "#777" }}>Završen</span>;
+    return <span className="text-xs text-gray-500">Završen</span>;
   }
 
   return (
-    <span style={{ fontWeight: 600 }}>
+    <span className="text-xs font-semibold text-gray-700">
       Preostalo: {formatRemaining(remaining)}
     </span>
   );
