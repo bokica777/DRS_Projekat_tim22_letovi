@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from passlib.hash import pbkdf2_sha256
 
 from .models import User
+from .db import db
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -16,59 +17,56 @@ JWT_EXP_SECONDS = int(os.environ.get("JWT_EXP_SECONDS", "3600"))  # 1h
 LOCK_SECONDS = int(os.environ.get("LOCK_SECONDS", "60"))          # 1 min za test
 
 
-# ================= DB lookup =================
-def get_user_by_email(email: str):
-    email = (email or "").strip().lower()
-    u = User.query.filter_by(email=email).first()
-    if not u:
-        return None
+# ================= Helpers (DB lock) =================
+def _now() -> int:
+    return int(time.time())
 
-    # vraćamo dict da ostatak koda ostane isti
-    return {
-        "id": u.id,
-        "email": u.email,
-        "role": u.role,
-        "first_name": u.first_name,
-        "last_name": u.last_name,
-        "password_hash": u.password_hash,
-    }
+def _parse_lock_until(lock_until_value) -> int:
+    """
+    lock_until je String u modelu, pa ga tretiramo kao epoch seconds u stringu.
+    Ako je None/prazno/nevalidno -> 0.
+    """
+    if not lock_until_value:
+        return 0
+    try:
+        return int(lock_until_value)
+    except Exception:
+        return 0
 
+def is_locked_user(u: User):
+    now = _now()
+    locked_until = _parse_lock_until(u.lock_until)
+    if locked_until > now:
+        return True, max(0, locked_until - now)
+    return False, 0
 
-# ================= Login attempt tracking =================
-ATTEMPTS = {}  # email -> {"fails": int, "locked_until": epoch_seconds}
+def register_fail_user(u: User):
+    u.failed_login_count = int(u.failed_login_count or 0) + 1
+    if u.failed_login_count >= 3:
+        u.lock_until = str(_now() + LOCK_SECONDS)
+    db.session.commit()
+    return u.failed_login_count
 
-def is_locked(email: str):
-    rec = ATTEMPTS.get(email)
-    if not rec:
-        return False, 0
-    now = int(time.time())
-    locked_until = int(rec.get("locked_until", 0))
-    return locked_until > now, max(0, locked_until - now)
-
-def register_fail(email: str):
-    rec = ATTEMPTS.setdefault(email, {"fails": 0, "locked_until": 0})
-    rec["fails"] += 1
-    if rec["fails"] >= 3:
-        rec["locked_until"] = int(time.time()) + LOCK_SECONDS
-    return rec
-
-def reset_attempts(email: str):
-    if email in ATTEMPTS:
-        ATTEMPTS[email] = {"fails": 0, "locked_until": 0}
+def reset_attempts_user(u: User):
+    u.failed_login_count = 0
+    u.lock_until = None
+    db.session.commit()
 
 
 # ================= JWT helpers =================
 def create_token(user):
     payload = {
-        "sub": str(user["id"]),
-        "email": user["email"],
-        "role": user["role"],
-        "exp": int(time.time()) + JWT_EXP_SECONDS,
+        "sub": str(user.id),
+        "user_id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "exp": _now() + JWT_EXP_SECONDS,
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 def decode_token(token: str):
     return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+
 
 def auth_required(fn):
     @wraps(fn)
@@ -88,6 +86,7 @@ def auth_required(fn):
         request.user = payload
         return fn(*args, **kwargs)
     return wrapper
+
 
 def role_required(*roles):
     def decorator(fn):
@@ -114,28 +113,38 @@ def login():
     if not email or not password:
         return jsonify({"error": "email and password are required"}), 400
 
-    locked, seconds_left = is_locked(email)
+    # Uzimamo user-a iz DB
+    u: User | None = User.query.filter_by(email=email).first()
+
+    # Ako user ne postoji, vrati generic invalid (ne otkrivamo da li postoji)
+    if not u:
+        return jsonify({"error": "invalid credentials"}), 401
+
+    # Provera lock-a iz DB
+    locked, seconds_left = is_locked_user(u)
     if locked:
         return jsonify({"error": "blocked", "retry_after_seconds": seconds_left}), 403
 
-    user = get_user_by_email(email)
-    if (not user) or (not pbkdf2_sha256.verify(password, user["password_hash"])):
-        rec = register_fail(email)
-        locked_now, seconds_left_now = is_locked(email)
+    # Provera lozinke
+    if not pbkdf2_sha256.verify(password, u.password_hash):
+        fails = register_fail_user(u)
+        locked_now, seconds_left_now = is_locked_user(u)
         if locked_now:
             return jsonify({"error": "blocked", "retry_after_seconds": seconds_left_now}), 403
-        return jsonify({"error": "invalid credentials", "fails": rec["fails"]}), 401
+        return jsonify({"error": "invalid credentials", "fails": fails}), 401
 
-    reset_attempts(email)
-    token = create_token(user)
+    # Uspešan login -> reset attempts u DB
+    reset_attempts_user(u)
+
+    token = create_token(u)
     return jsonify({
         "token": token,
         "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "role": user["role"],
-            "first_name": user["first_name"],
-            "last_name": user["last_name"],
+            "id": u.id,
+            "email": u.email,
+            "role": u.role,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
         }
     }), 200
 
