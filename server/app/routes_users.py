@@ -3,6 +3,7 @@ from passlib.hash import pbkdf2_sha256
 
 from .db import db
 from .models import User
+from .auth import auth_required
 
 users_bp = Blueprint("users_bp", __name__)
 
@@ -63,3 +64,42 @@ def register():
     db.session.commit()
 
     return jsonify(user.to_dict()), 201
+
+
+
+@users_bp.post("/deposit")
+@auth_required
+def deposit():
+    data = request.get_json(silent=True) or {}
+    amount = data.get("amount")
+
+    if amount is None:
+        return jsonify({"error": "amount is required"}), 400
+
+    try:
+        amount = float(amount)
+    except Exception:
+        return jsonify({"error": "amount must be a number"}), 400
+
+    if amount <= 0:
+        return jsonify({"error": "amount must be > 0"}), 400
+
+    jwt_user = getattr(request, "user", {}) or {}
+    raw_id = jwt_user.get("user_id") or jwt_user.get("id") or jwt_user.get("sub")
+
+    try:
+        user_id = int(raw_id)
+    except Exception:
+        return jsonify({"error": "Invalid JWT user id"}), 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.balance = float(user.balance) + amount
+    db.session.commit()
+
+    return jsonify({
+        "status": "ok",
+        "balance": user.balance
+    }), 200

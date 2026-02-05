@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from multiprocessing import Process
 
 from app.db.models import Flight, Company, FlightStatus, ApprovalStatus, Ticket
-from app.scheduler.ticket_process import process_ticket_purchase
+from app.scheduler.tickets_process import process_ticket_purchase
 
 bp = Blueprint("flight_internal", __name__, url_prefix="/internal")
 

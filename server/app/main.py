@@ -8,6 +8,7 @@ from app.routes_users import users_bp
 from app.routes_admin import admin_bp
 from app.socketio_app import socketio, register_ws_handlers
 from app.api.flights import bp as flights_bp
+from app.api.tickets import tickets_bp  # <-- DODATO
 
 load_dotenv()
 
@@ -45,7 +46,8 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(admin_bp, url_prefix="/api")
-    app.register_blueprint(flights_bp)  # flights.py već ima /api prefix
+    app.register_blueprint(flights_bp)   # flights.py već ima /api prefix
+    app.register_blueprint(tickets_bp)   # <-- DODATO (/api/tickets/...)
 
     # -----------------
     # Health ruta
