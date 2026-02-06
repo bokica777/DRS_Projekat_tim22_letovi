@@ -73,3 +73,15 @@ class Ticket(Base):
 
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
+class Rating(Base):
+    __tablename__ = "ratings"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(String(64), nullable=False, index=True)
+    flight_id = Column(Integer, ForeignKey("flights.id"), nullable=False, index=True)
+    flight = relationship("Flight")
+
+    value = Column(Integer, nullable=False)  # 1–5
+
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

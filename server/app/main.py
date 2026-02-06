@@ -9,6 +9,8 @@ from app.routes_admin import admin_bp
 from app.socketio_app import socketio, register_ws_handlers
 from app.api.flights import bp as flights_bp
 from app.api.tickets import tickets_bp  # <-- DODATO
+from app.api.ratings import ratings_bp
+
 
 load_dotenv()
 
@@ -48,6 +50,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/api")
     app.register_blueprint(flights_bp)   # flights.py već ima /api prefix
     app.register_blueprint(tickets_bp)   # <-- DODATO (/api/tickets/...)
+    app.register_blueprint(ratings_bp)   # <-- DODATO (/api/ratings/...)
 
     # -----------------
     # Health ruta

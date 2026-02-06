@@ -29,7 +29,7 @@ SessionLocal = sessionmaker(
 
 def init_db():
     """
-    Kreira sve tabele definisane u app.db.models (ukljucujuci Ticket)
+    Kreira sve tabele definisane u app.db.models (uključujući Ticket i Rating ako postoje)
     + seed inicijalnih kompanija.
     Retry je tu jer DB2 u dockeru nekad nije spreman odmah.
     """
@@ -45,11 +45,14 @@ def init_db():
 
     # seed kompanija
     with SessionLocal() as db:
-        if db.query(Company).count() == 0:
-            db.add_all([
-                Company(name="Air Serbia"),
-                Company(name="Lufthansa"),
-                Company(name="Wizz Air"),
-            ])
-            db.commit()
-
+        try:
+            if db.query(Company).count() == 0:
+                db.add_all([
+                    Company(name="Air Serbia"),
+                    Company(name="Lufthansa"),
+                    Company(name="Wizz Air"),
+                ])
+                db.commit()
+        except Exception:
+            db.rollback()
+            raise
