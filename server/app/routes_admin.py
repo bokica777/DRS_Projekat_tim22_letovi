@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from .db import db
 from .models import User
 from .auth import auth_required, role_required   # ogranicenja
+from .email.email_service import send_email
+from .email.email_jobs import run_in_process
 
 admin_bp = Blueprint("admin_bp", __name__)
 
@@ -40,6 +42,19 @@ def change_role(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
+    old_role = user.role
     user.role = new_role
     db.session.commit()
+
+    # ✅ MAIL: samo kad prelazi u MENADZER (spec baš to traži)
+    if old_role != "MENADZER" and new_role == "MENADZER":
+        subject = "Promena uloge na platformi Avio Letovi"
+        body = (
+            f"Zdravo {user.first_name} {user.last_name},\n\n"
+            f"Administrator ti je dodelio ulogu MENADŽER.\n"
+            f"Sada možeš da kreiraš letove i kompanije.\n\n"
+            f"Pozdrav,\nAvio Letovi"
+        )
+        run_in_process(send_email, user.email, subject, body)
+
     return jsonify(user.to_dict()), 200

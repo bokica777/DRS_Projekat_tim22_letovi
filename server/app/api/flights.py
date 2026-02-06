@@ -3,6 +3,9 @@ import requests
 from flask import Blueprint, request, jsonify, abort
 from app.socketio_app import socketio
 from app.auth import auth_required, role_required
+from app.email.email_service import send_email
+from app.email.email_jobs import run_in_process
+from app.models import User
 
 bp = Blueprint("flights", __name__, url_prefix="/api")
 
@@ -123,4 +126,29 @@ def admin_cancel(flight_id: int):
     dto = r.json()
     socketio.emit("flight.cancelled", dto, room="admins")
     socketio.emit("flight.cancelled", dto, room=f"user:{dto.get('created_by_user_id')}")
+      # ✅ 1) uzmi sve user_id koji imaju ticket za taj flight
+    buyers_r = _fs_get("/internal/tickets/by-flight", params={"flight_id": flight_id})
+    if buyers_r.status_code < 400:
+        user_ids = buyers_r.json() if buyers_r.content else []
+        # ✅ 2) mapiraj user_id -> email (DB1)
+        if user_ids:
+            users = User.query.filter(User.id.in_([int(x) for x in user_ids])).all()
+
+            flight_name = dto.get("name") or f"Let #{flight_id}"
+            dep = dto.get("departure_time") or ""
+            frm = dto.get("from_airport") or ""
+            to = dto.get("to_airport") or ""
+
+            for u in users:
+                subject = "Otkazan let – obaveštenje"
+                body = (
+                    f"Zdravo {u.first_name} {u.last_name},\n\n"
+                    f"Obaveštavamo te da je otkazan let koji si kupio:\n"
+                    f"- {flight_name}\n"
+                    f"- {frm} -> {to}\n"
+                    f"- Polazak: {dep}\n\n"
+                    f"Pozdrav,\nAvio Letovi"
+                )
+                run_in_process(send_email, u.email, subject, body)
+
     return jsonify(dto), 200

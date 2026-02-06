@@ -293,6 +293,21 @@ def my_tickets():
 
     return jsonify([ticket_to_dto(t) for t in tickets]), 200
 
+@bp.get("/tickets/by-flight")
+def tickets_by_flight():
+    db: Session = request.environ["db"]
+    flight_id = (request.args.get("flight_id") or "").strip()
+    if not flight_id:
+        abort(400, "flight_id is required")
+
+    try:
+        fid = int(flight_id)
+    except Exception:
+        abort(400, "flight_id must be int")
+
+    tickets = db.query(Ticket).filter(Ticket.flight_id == fid).all()
+    user_ids = sorted({t.user_id for t in tickets})  # unique
+    return jsonify(user_ids), 200
 
 # =========================
 # RATINGS  ✅ GOTOVO

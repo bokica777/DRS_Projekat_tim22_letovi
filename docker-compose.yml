@@ -61,6 +61,12 @@ services:
     environment:
       FLIGHT_SERVICE_URL: "http://flight-service:5001"
       DATABASE_URL: "postgresql+psycopg2://postgres:postgres@db1:5432/db1"
+
+      SMTP_HOST: "smtp.gmail.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "opacicrelja@gmail.com"
+      SMTP_PASS: "kccn gtsb kfwf wtbd"
+      MAIL_FROM: "Avio Letovi <opacicrelja@gmail.com>"
     depends_on:
       db1:
         condition: service_healthy
