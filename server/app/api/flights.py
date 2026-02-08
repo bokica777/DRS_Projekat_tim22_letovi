@@ -27,6 +27,10 @@ def _fs_post(path: str, json=None):
     return requests.post(f"{FLIGHT_SERVICE_URL}{path}", json=json, timeout=10)
 
 
+def _fs_patch(path: str, json=None):
+    return requests.patch(f"{FLIGHT_SERVICE_URL}{path}", json=json, timeout=10)
+
+
 def _fs_delete(path: str):
     return requests.delete(f"{FLIGHT_SERVICE_URL}{path}", timeout=10)
 
@@ -111,6 +115,42 @@ def create_flight_from_manager():
 
     socketio.emit("flight.created.pending", dto, room="admins")
     return jsonify(dto), 201
+
+
+# =========================
+# MANAGER – EDIT REJECTED FLIGHT (REJECTED -> PENDING) ✅ DODATO
+# =========================
+@bp.patch("/flights/<int:flight_id>")
+@auth_required
+@role_required("MENADZER")
+def manager_update_rejected_flight(flight_id: int):
+    """
+    Menadžer menja let koji je ADMIN odbio.
+    flight-service interno proverava da je REJECTED i da je kreator isti.
+    """
+    payload = request.get_json(force=True) or {}
+
+    # identitet menadžera iz JWT-a
+    manager_id = (request.user or {}).get("sub")
+    if not manager_id:
+        return jsonify({"error": "Missing user id in JWT"}), 401
+
+    # obavezno šaljemo user_id ka flight-service radi ownership check
+    payload["user_id"] = str(manager_id)
+
+    r = _fs_patch(f"/internal/flights/{flight_id}", json=payload)
+    if r.status_code >= 400:
+        return r.text, r.status_code
+
+    dto = r.json()
+    delete_prefix("flights:v1:")
+
+    # real-time adminu: opet pending
+    socketio.emit("flight.updated.pending", dto, room="admins")
+    # i menadžeru da osveži ako ima listen
+    socketio.emit("flight.updated.pending", dto, room=f"user:{dto.get('created_by_user_id')}")
+
+    return jsonify(dto), 200
 
 
 # =========================
@@ -252,4 +292,3 @@ def admin_flights_report():
         "filename": filename,
         "count": len(flights)
     }), 200
-

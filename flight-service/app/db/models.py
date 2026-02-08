@@ -73,6 +73,7 @@ class Ticket(Base):
 
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
+
 class Rating(Base):
     __tablename__ = "ratings"
 

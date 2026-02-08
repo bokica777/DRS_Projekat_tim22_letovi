@@ -184,6 +184,109 @@ def create_flight():
 
 
 # =========================
+# MANAGER EDIT (REJECTED -> PENDING) ✅ DODATO
+# =========================
+@bp.patch("/flights/<int:flight_id>")
+def update_rejected_flight(flight_id: int):
+    """
+    Menadzer može da izmeni let SAMO ako je admin odbio (REJECTED).
+    Nakon izmene: approval_status -> PENDING, rejection_reason -> None.
+    Auth je na serveru, ovde samo verifikujemo ownership preko user_id iz payload-a.
+    """
+    db: Session = request.environ["db"]
+    f = db.get(Flight, flight_id)
+    if not f:
+        abort(404)
+
+    data = request.get_json(force=True) or {}
+    user_id = str(data.get("user_id") or "").strip()
+    if not user_id:
+        abort(400, "user_id is required")
+
+    if str(f.created_by_user_id) != user_id:
+        abort(403, "Only creator can edit this flight")
+
+    # sme samo ako je REJECTED
+    if f.approval_status != ApprovalStatus.REJECTED:
+        abort(409, "Only REJECTED flights can be edited")
+
+    # ne diramo ako je već krenuo/istorija
+    if f.status in [FlightStatus.IN_PROGRESS, FlightStatus.FINISHED, FlightStatus.CANCELLED]:
+        abort(409, "Cannot edit flight in this status")
+
+    # bezbedno: zabrani izmenu ako ima kupljenih karata (realno neće imati jer nije APPROVED, ali neka stoji)
+    has_tickets = db.query(Ticket).filter(Ticket.flight_id == flight_id).first()
+    if has_tickets:
+        abort(409, "Cannot edit flight with existing tickets")
+
+    # dozvoljena polja za izmenu
+    allowed = {
+        "name",
+        "company_id",
+        "distance_km",
+        "duration_sec",
+        "departure_time",
+        "from_airport",
+        "to_airport",
+        "price",
+    }
+
+    for k, v in data.items():
+        if k not in allowed:
+            continue
+
+        if k == "company_id":
+            try:
+                cid = int(v)
+            except Exception:
+                abort(400, "company_id must be int")
+            company = db.get(Company, cid)
+            if not company:
+                abort(400, "Invalid company_id")
+            f.company_id = company.id
+
+        elif k == "distance_km":
+            try:
+                f.distance_km = int(v)
+            except Exception:
+                abort(400, "distance_km must be int")
+
+        elif k == "duration_sec":
+            try:
+                f.duration_sec = int(v)
+            except Exception:
+                abort(400, "duration_sec must be int")
+
+        elif k == "departure_time":
+            try:
+                f.departure_time = datetime.fromisoformat(str(v))
+            except Exception:
+                abort(400, "departure_time must be ISO datetime string")
+
+        elif k == "price":
+            # Numeric u bazi, prihvati broj/string
+            try:
+                f.price = v
+            except Exception:
+                abort(400, "price invalid")
+
+        else:
+            # string polja
+            if v is None:
+                abort(400, f"{k} cannot be null")
+            setattr(f, k, str(v))
+
+    # reset na ponovnu verifikaciju
+    f.approval_status = ApprovalStatus.PENDING
+    f.rejection_reason = None
+
+    db.commit()
+    db.refresh(f)
+    _ = f.company
+    return jsonify(flight_to_dto(f)), 200
+
+
+# =========================
 # APPROVAL
 # =========================
 
@@ -234,6 +337,7 @@ def cancel_flight(flight_id: int):
     db.commit()
     return jsonify(flight_to_dto(f)), 200
 
+
 @bp.delete("/flights/<int:flight_id>")
 def delete_flight(flight_id: int):
     db: Session = request.environ["db"]
@@ -254,8 +358,6 @@ def delete_flight(flight_id: int):
     db.delete(f)
     db.commit()
     return jsonify({"status": "deleted", "id": flight_id}), 200
-
-
 
 
 # =========================
@@ -316,6 +418,7 @@ def my_tickets():
 
     return jsonify([ticket_to_dto(t) for t in tickets]), 200
 
+
 @bp.get("/tickets/by-flight")
 def tickets_by_flight():
     db: Session = request.environ["db"]
@@ -331,6 +434,7 @@ def tickets_by_flight():
     tickets = db.query(Ticket).filter(Ticket.flight_id == fid).all()
     user_ids = sorted({t.user_id for t in tickets})  # unique
     return jsonify(user_ids), 200
+
 
 # =========================
 # RATINGS  ✅ GOTOVO
