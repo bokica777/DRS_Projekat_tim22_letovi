@@ -1,12 +1,14 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useCallback } from "react";
 import type { User, Role } from "../types/auth";
 import { apiLogin } from "../api/auth";
+import { getMe } from "../api/users";
 
 type AuthState = {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   hasRole: (roles: Role[]) => boolean;
+  refreshMe: () => Promise<User | null>;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -14,57 +16,40 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 const TOKEN_KEY = "token";
 const USER_KEY = "auth_user";
 
-function mapBackendUserToFrontend(u: {
-  id: number;
-  email: string;
-  role: Role;
-  first_name: string;
-  last_name: string;
-}): User {
-  return {
-    id: u.id,
-    email: u.email,
-    role: u.role,
-    firstName: u.first_name,
-    lastName: u.last_name,
-
-    dateOfBirth: "",
-    gender: "OSTALO",
-    country: "",
-    street: "",
-    streetNumber: "",
-
-    balance: 0,
-    avatarDataUrl: undefined,
-  };
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const raw = localStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as User) : null;
   });
 
-  const login = async (email: string, password: string) => {
-    const res = await apiLogin(email, password);
+  const refreshMe = useCallback(async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
 
-    localStorage.setItem(TOKEN_KEY, res.token);
+    const me = await getMe();
+    localStorage.setItem(USER_KEY, JSON.stringify(me));
+    setUser(me);
+    return me;
+  }, []);
 
-    const mapped = mapBackendUserToFrontend(res.user);
-    localStorage.setItem(USER_KEY, JSON.stringify(mapped));
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await apiLogin(email, password);
+      localStorage.setItem(TOKEN_KEY, res.token);
+      await refreshMe();
+    },
+    [refreshMe]
+  );
 
-    setUser(mapped);
-  };
-
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUser(null);
-  };
+  }, []);
 
-  const hasRole = (roles: Role[]) => !!user && roles.includes(user.role);
+  const hasRole = useCallback((roles: Role[]) => !!user && roles.includes(user.role), [user]);
 
-  const value = useMemo(() => ({ user, login, logout, hasRole }), [user]);
+  const value = useMemo(() => ({ user, login, logout, hasRole, refreshMe }), [user, login, logout, hasRole, refreshMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

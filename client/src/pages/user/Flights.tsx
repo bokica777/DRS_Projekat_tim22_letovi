@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Airline, Flight, FlightStatus } from "../../types/flights";
-import { listAirlines, listFlights } from "../../mocks/handlers";
+import { fetchAirlines } from "../../api/airlines";
+import { fetchFlights } from "../../api/flights";
+import { buyTicket } from "../../api/tickets";
 import { SearchBar } from "../../components/flights/SearchBar";
 import { AirlineSelect } from "../../components/flights/AirlineSelect";
 import { FlightCard } from "../../components/flights/FlightCard";
-import { createPurchase } from "../../mocks/purchases";
+
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
 
@@ -26,36 +28,30 @@ export default function FlightsPage() {
   const [processingFlightIds, setProcessingFlightIds] = useState<number[]>([]);
 
   useEffect(() => {
-    listAirlines().then(setAirlines);
+    fetchAirlines().then(setAirlines);
   }, []);
 
   useEffect(() => {
     setLoading(true);
 
-    const statusToSend = active === "DONE" ? undefined : active;
-
-    listFlights({ status: statusToSend as any, search, airlineId })
-      .then((data) => {
-        if (active === "DONE") {
-          setFlights(data.filter((f) => f.status === "FINISHED" || f.status === "CANCELLED"));
-        } else {
-          setFlights(data);
-        }
-      })
+    fetchFlights({ tab: active as any, search, airlineId })
+      .then(setFlights)
       .finally(() => setLoading(false));
   }, [active, search, airlineId]);
+
 
   const handleBuy = async (flightId: number) => {
     if (!user || !hasRole(["KORISNIK"])) return;
 
     setProcessingFlightIds((prev) => [...prev, flightId]);
     try {
-      await createPurchase(flightId);
-      alert("Kupovina završena ✅ (mock)");
+      await buyTicket(flightId);
+      alert("Kupovina je pokrenuta...(obrada traje par sekundi)");
     } finally {
       setProcessingFlightIds((prev) => prev.filter((id) => id !== flightId));
     }
   };
+
 
   const handleCancel = (flightId: number) => {
     const ok = window.confirm("Da li ste sigurni da želite da otkažete let?");

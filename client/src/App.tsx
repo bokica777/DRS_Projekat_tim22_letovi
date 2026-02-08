@@ -1,4 +1,4 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes} from "react-router-dom";
 import FlightsPage from "./pages/user/Flights";
 import LoginPage from "./pages/public/Login";
 import RegisterPage from "./pages/public/Register";
@@ -15,14 +15,13 @@ import AdminUsersPage from "./pages/admin/AdminUsers";
 import ProfilePage from "./pages/user/Profile";
 
 import TopBar from "./components/layout/TopBar";
+import { useAuth } from "./auth/AuthContext";
 
 export default function App() {
-  const location = useLocation();
-  const hideTopBar = ["/login", "/register"].includes(location.pathname);
-
+  const {user} = useAuth();
   return (
     <div>
-      {!hideTopBar && <TopBar />}
+      {user && <TopBar />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />

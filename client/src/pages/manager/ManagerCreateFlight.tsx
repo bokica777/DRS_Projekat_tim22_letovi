@@ -1,13 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { listAirlines } from "../../mocks/handlers";
-import type { Airline, Flight } from "../../types/flights";
-import { addFlight, getFlights } from "../../mocks/flightStore";
+import type { Airline } from "../../types/flights";
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import { Label } from "../../components/common/Label";
 import { Select } from "../../components/common/Select";
+import { fetchAirlinesForManager, createManagerFlight } from "../../api/managerFlights";
+
+function errMsg(e: any): string {
+  const d = e?.response?.data;
+  if (typeof d === "string") return d;
+  if (d?.error) return String(d.error);
+  if (d?.message) return String(d.message);
+  return e?.message ? String(e.message) : "Greška";
+}
 
 export default function ManagerCreateFlightPage() {
   const nav = useNavigate();
@@ -23,9 +30,10 @@ export default function ManagerCreateFlightPage() {
   const [to, setTo] = useState("CDG");
   const [price, setPrice] = useState<number>(120);
   const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    listAirlines().then((a) => {
+    fetchAirlinesForManager().then((a) => {
       setAirlines(a);
       if (a[0]) setAirlineId(a[0].id);
     });
@@ -41,7 +49,7 @@ export default function ManagerCreateFlightPage() {
     );
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
 
@@ -50,33 +58,30 @@ export default function ManagerCreateFlightPage() {
     if (!from.trim() || !to.trim()) return setErr("Aerodromi su obavezni.");
     if (price <= 0) return setErr("Cena mora biti > 0.");
 
-    const airlineName = airlines.find((x) => x.id === airlineId)?.name ?? "N/A";
-    const newId = Math.max(0, ...getFlights().map((f) => f.id)) + 1;
-
-    const flight: Flight = {
-      id: newId,
-      name: name.trim(),
-      airlineId,
-      airlineName,
-      distanceKm,
-      durationMinutes,
-      departureTime: new Date(departureTime).toISOString(),
-      from: from.trim().toUpperCase(),
-      to: to.trim().toUpperCase(),
-      price,
-      status: "PENDING",
-      createdBy: user.email as any,
-    } as any;
-
-    addFlight(flight);
-    alert("Let poslat administratoru na odobrenje ✅ (mock)");
-    nav("/flights");
+    setSaving(true);
+    try {
+      await createManagerFlight({
+        name: name.trim(),
+        company_id: airlineId,
+        distance_km: distanceKm,
+        duration_sec: Math.max(1, Math.round(durationMinutes * 60)),
+        departure_time: new Date(departureTime).toISOString(),
+        from_airport: from.trim().toUpperCase(),
+        to_airport: to.trim().toUpperCase(),
+        price,
+      });
+      alert("Let poslat administratoru na odobrenje ✅");
+      nav("/manager/flights");
+    } catch (e) {
+      setErr(errMsg(e));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-56px)] px-4 py-10">
       <div className="mx-auto w-full max-w-6xl">
-        {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800" />
           <div
@@ -89,22 +94,16 @@ export default function ManagerCreateFlightPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-sky-700/70 via-blue-800/65 to-indigo-900/70" />
           <div className="relative z-10 p-6 sm:p-10 text-white">
-            <div className="text-xs tracking-widest uppercase text-white/80">
-              DRS Fly • Menadžer
-            </div>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Novi let
-            </h1>
+            <div className="text-xs tracking-widest uppercase text-white/80">DRS Fly • Menadžer</div>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">Novi let</h1>
             <p className="mt-2 text-sm text-white/85 max-w-2xl">
               Kreiraj let i pošalji ga administratoru na odobrenje.
             </p>
           </div>
         </div>
 
-        {/* Form Card */}
         <div className="mt-6 rounded-3xl border border-gray-200 bg-white shadow-sm">
           <form onSubmit={submit} className="p-4 sm:p-6 grid gap-4">
-            {/* Top row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2 grid gap-2">
                 <Label>Naziv leta</Label>
@@ -132,29 +131,17 @@ export default function ManagerCreateFlightPage() {
               </div>
             </div>
 
-            {/* Route */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Od (aerodrom)</Label>
-                <Input
-                  placeholder="npr. BEG"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className="rounded-2xl uppercase"
-                />
+                <Input value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-2xl uppercase" />
               </div>
               <div className="grid gap-2">
                 <Label>Do (aerodrom)</Label>
-                <Input
-                  placeholder="npr. CDG"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className="rounded-2xl uppercase"
-                />
+                <Input value={to} onChange={(e) => setTo(e.target.value)} className="rounded-2xl uppercase" />
               </div>
             </div>
 
-            {/* Departure */}
             <div className="grid gap-2">
               <Label>Datum i vreme poletanja</Label>
               <Input
@@ -163,12 +150,8 @@ export default function ManagerCreateFlightPage() {
                 onChange={(e) => setDepartureTime(e.target.value)}
                 className="rounded-2xl"
               />
-              <div className="text-xs text-gray-500">
-                Savet: za demo stavi polazak uskoro da bi testirao statuse.
-              </div>
             </div>
 
-            {/* Numbers */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Dužina leta (km)</Label>
@@ -192,12 +175,7 @@ export default function ManagerCreateFlightPage() {
 
               <div className="grid gap-2">
                 <Label>Cena karte (€)</Label>
-                <Input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className="rounded-2xl"
-                />
+                <Input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} className="rounded-2xl" />
               </div>
             </div>
 
@@ -208,16 +186,11 @@ export default function ManagerCreateFlightPage() {
             )}
 
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-2xl"
-                onClick={() => nav("/flights")}
-              >
+              <Button type="button" variant="secondary" className="rounded-2xl" onClick={() => nav("/manager/flights")}>
                 Odustani
               </Button>
-              <Button type="submit" variant="primary" className="rounded-2xl px-5">
-                Pošalji na odobrenje
+              <Button type="submit" variant="primary" className="rounded-2xl px-5" disabled={saving}>
+                {saving ? "Šaljem..." : "Pošalji na odobrenje"}
               </Button>
             </div>
           </form>

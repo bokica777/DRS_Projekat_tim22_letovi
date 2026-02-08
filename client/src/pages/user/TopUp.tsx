@@ -3,26 +3,36 @@ import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import { Label } from "../../components/common/Label";
+import { deposit } from "../../api/users";
+
+
 
 const quick = [20, 50, 100, 200];
 
 export default function TopUpPage() {
-  const { user } = useAuth();
+  const { user, refreshMe } = useAuth();
+
   const [amount, setAmount] = useState<number>(50);
+  const [saving, setSaving] = useState(false);
 
   if (!user) return <div className="p-4">Nisi ulogovan.</div>;
 
-  const addMoney = () => {
+  const addMoney = async () => {
     if (amount <= 0) return alert("Iznos mora biti veći od 0.");
-    const next = { ...user, balance: user.balance + amount };
-    localStorage.setItem("mock_user", JSON.stringify(next));
-    window.location.reload();
+
+    setSaving(true);
+    try {
+      await deposit(amount);
+      await refreshMe();
+      alert("Uplata uspešna ✅");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-56px)] px-4 py-10">
       <div className="mx-auto w-full max-w-6xl">
-
         <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800" />
           <div
@@ -48,7 +58,6 @@ export default function TopUpPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-
           <div className="lg:col-span-2 rounded-3xl border border-gray-200 bg-white shadow-sm">
             <div className="p-4 sm:p-6">
               <div className="text-sm font-semibold">Brza uplata</div>
@@ -75,9 +84,6 @@ export default function TopUpPage() {
                   onChange={(e) => setAmount(Number(e.target.value))}
                   className="rounded-2xl"
                 />
-                <div className="text-xs text-gray-500">
-                  (Mock) Kasnije ide na <code>POST /api/users/me/topup</code>
-                </div>
               </div>
 
               <div className="mt-6 flex justify-end">
@@ -85,8 +91,9 @@ export default function TopUpPage() {
                   variant="primary"
                   onClick={addMoney}
                   className="rounded-2xl px-5"
+                  disabled={saving}
                 >
-                  Uplati
+                  {saving ? "Uplaćujem..." : "Uplati"}
                 </Button>
               </div>
             </div>
@@ -100,10 +107,6 @@ export default function TopUpPage() {
               </div>
               <div className="mt-3 text-sm text-gray-600">
                 Uplati sredstva da bi mogao da kupuješ karte.
-              </div>
-
-              <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600">
-                Savet: koristi brze iznose (20/50/100/200) ili unesi svoj.
               </div>
             </div>
           </div>

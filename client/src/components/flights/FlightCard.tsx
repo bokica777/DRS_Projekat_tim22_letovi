@@ -138,7 +138,7 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
           </div>
         )}
 
-        {canRate && <RateFlight flightId={flight.id} userEmail={user!.email} />}
+       {canRate && <RateFlight flightId={flight.id} />}
       </div>
     </div>
   );

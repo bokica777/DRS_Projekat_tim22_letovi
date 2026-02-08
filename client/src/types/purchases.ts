@@ -1,8 +1,9 @@
-export type PurchaseStatus = "PROCESSING" | "COMPLETED" | "FAILED";
+import type { Flight } from "./flights";
 
-export type Purchase = {
+export type Ticket = {
   id: number;
   flightId: number;
   createdAt: string;
-  status: PurchaseStatus;
+  price: number;
+  flight?: Flight;
 };
