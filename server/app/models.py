@@ -26,6 +26,9 @@ class User(db.Model):
     failed_login_count = db.Column(db.Integer, nullable=False, default=0)
     lock_until = db.Column(db.String(40), nullable=True)
 
+    # ✅ NOVO: putanja do slike profila (npr. /static/uploads/user_1_xxx.png)
+    profile_image = db.Column(db.String(255), nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -39,4 +42,5 @@ class User(db.Model):
             "number": self.number,
             "balance": self.balance,
             "role": self.role,
+            "profileImage": self.profile_image,
         }

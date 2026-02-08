@@ -17,7 +17,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "dev"
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
 
     # -----------------
     # DB1 konekcija (POSTGRES ONLY)
