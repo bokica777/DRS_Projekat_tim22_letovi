@@ -234,6 +234,29 @@ def cancel_flight(flight_id: int):
     db.commit()
     return jsonify(flight_to_dto(f)), 200
 
+@bp.delete("/flights/<int:flight_id>")
+def delete_flight(flight_id: int):
+    db: Session = request.environ["db"]
+
+    f = db.get(Flight, flight_id)
+    if not f:
+        abort(404)
+
+    # Dozvoli brisanje samo ako je PLANNED ili CANCELLED (cuva istoriju)
+    if f.status not in [FlightStatus.PLANNED, FlightStatus.CANCELLED]:
+        abort(409, "Cannot delete flight in this status")
+
+    # Bezbedno: zabrani brisanje ako ima kupljenih karata
+    has_tickets = db.query(Ticket).filter(Ticket.flight_id == flight_id).first()
+    if has_tickets:
+        abort(409, "Cannot delete flight with existing tickets")
+
+    db.delete(f)
+    db.commit()
+    return jsonify({"status": "deleted", "id": flight_id}), 200
+
+
+
 
 # =========================
 # TICKETS

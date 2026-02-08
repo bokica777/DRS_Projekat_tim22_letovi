@@ -33,6 +33,12 @@ services:
       retries: 20
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   flight-service:
     build: ./flight-service
     ports:
@@ -42,7 +48,6 @@ services:
     depends_on:
       db2:
         condition: service_healthy
-    # Ako flight-service ima /health rutu, ostavi. Ako nema - obriši ovaj blok.
     healthcheck:
       test:
         [
@@ -62,6 +67,8 @@ services:
       FLIGHT_SERVICE_URL: "http://flight-service:5001"
       DATABASE_URL: "postgresql+psycopg2://postgres:postgres@db1:5432/db1"
 
+      REDIS_URL: "redis://redis:6379/0"
+
       SMTP_HOST: "smtp.gmail.com"
       SMTP_PORT: "587"
       SMTP_USER: "opacicrelja@gmail.com"
@@ -72,8 +79,8 @@ services:
         condition: service_healthy
       flight-service:
         condition: service_started
-        # Ako si ostavila healthcheck za flight-service i radi, možeš da staviš:
-        # condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
