@@ -25,6 +25,7 @@ export default function App() {
       {user && <TopBar />}
 
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -127,10 +128,7 @@ export default function App() {
           }
         />
 
-
-
         <Route path="*" element={<NotFound />} />
-
       </Routes>
     </div>
   );
