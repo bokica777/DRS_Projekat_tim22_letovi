@@ -1,4 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../common/Button";
 import { Container } from "../common/Container";
@@ -33,6 +34,38 @@ function NavItem({ to, label }: { to: string; label: string }) {
 export default function TopBar() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  
+  const [avatarVersion] = useState(() => Date.now());
+
+  const apiOrigin = useMemo(() => {
+    const v = (import.meta as any).env?.VITE_API_URL as string | undefined;
+    const fallback = window.location.origin;
+
+    if (!v) return fallback;
+
+    try {
+      return new URL(v).origin;
+    } catch {
+      return fallback;
+    }
+  }, []);
+
+  const avatarSrc = useMemo(() => {
+    const raw = (user as any)?.avatarDataUrl as string | undefined; 
+
+    if (!raw) return "";
+    if (raw.startsWith("data:")) return raw;
+
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      const sep = raw.includes("?") ? "&" : "?";
+      return `${raw}${sep}v=${avatarVersion}`;
+    }
+
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    const abs = `${apiOrigin}${path}`;
+    const sep = abs.includes("?") ? "&" : "?";
+    return `${abs}${sep}v=${avatarVersion}`;
+  }, [user, apiOrigin, avatarVersion]);
 
   return (
     <header className="sticky top-0 z-30">
@@ -81,8 +114,8 @@ export default function TopBar() {
                 <>
                   <NavItem to="/tickets" label="Moje karte" />
                   <NavItem to="/topup" label="Uplata" />
-                  <NavItem to="/manager/create" label="Novi let" />
-                  <NavItem to="/manager/my-flights" label="Moji letovi" />
+                  <NavItem to="/flights/new" label="Novi let" />
+                  <NavItem to="/flights/mine" label="Moji letovi" />
                 </>
               )}
 
@@ -106,15 +139,27 @@ export default function TopBar() {
                   type="button"
                   title="Profil"
                 >
-                  <div className="h-9 w-9 rounded-2xl bg-white/15 border border-white/20 grid place-items-center text-white font-semibold">
-                    {user.firstName?.[0]?.toUpperCase() ?? "U"}
+                  <div className="h-9 w-9 rounded-2xl overflow-hidden bg-white/15 border border-white/20 grid place-items-center text-white font-semibold">
+                    {avatarSrc ? (
+                      <img
+                        src={avatarSrc}
+                        alt="avatar"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      (user.firstName?.[0]?.toUpperCase() ?? "U")
+                    )}
                   </div>
+
                   <div className="leading-tight text-left">
                     <div className="font-semibold">
                       {user.firstName} {user.lastName}
                     </div>
                     <div className="text-xs text-white/80">
-                      {user.role} • <span className="font-semibold text-white">{user.balance}€</span>
+                      {user.role} •{" "}
+                      <span className="font-semibold text-white">
+                        {user.balance}€
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -178,8 +223,8 @@ export default function TopBar() {
               <>
                 <NavItem to="/tickets" label="Moje karte" />
                 <NavItem to="/topup" label="Uplata" />
-                <NavItem to="/manager/create" label="Novi let" />
-                <NavItem to="/manager/my-flights" label="Moji letovi" />
+                <NavItem to="/flights/new" label="Novi let" />
+                <NavItem to="/flights/mine" label="Moji letovi" />
               </>
             )}
 

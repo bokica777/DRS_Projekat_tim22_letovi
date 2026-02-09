@@ -38,6 +38,7 @@ export const endpoints = {
     users: `${API_BASE}/admin/users`,
     userRole: (id: number | string) => `${API_BASE}/admin/users/${id}/role`,
     userById: (id: number | string) => `${API_BASE}/admin/users/${id}`,
+    ratings: `${API_BASE}/ratings/admin`,
   },
 
   ratings: {

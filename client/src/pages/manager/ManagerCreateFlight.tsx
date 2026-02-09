@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Airline } from "../../types/flights";
+import type { Airline } from "../../types/airlines";
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
@@ -71,7 +71,7 @@ export default function ManagerCreateFlightPage() {
         price,
       });
       alert("Let poslat administratoru na odobrenje ✅");
-      nav("/manager/flights");
+      nav("/flights/mine");
     } catch (e) {
       setErr(errMsg(e));
     } finally {
@@ -186,7 +186,7 @@ export default function ManagerCreateFlightPage() {
             )}
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" className="rounded-2xl" onClick={() => nav("/manager/flights")}>
+              <Button type="button" variant="secondary" className="rounded-2xl" onClick={() => nav("/flights/mine")}>
                 Odustani
               </Button>
               <Button type="submit" variant="primary" className="rounded-2xl px-5" disabled={saving}>

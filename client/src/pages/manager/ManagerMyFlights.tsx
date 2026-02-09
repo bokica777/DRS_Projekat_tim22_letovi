@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { Button } from "../../components/common/Button";
@@ -29,24 +29,30 @@ export default function ManagerMyFlightsPage() {
   const [items, setItems] = useState<ManagerFlight[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const id = String((user as any)?.id ?? (user as any)?.sub ?? "");
+  const id = useMemo(
+    () => String((user as any)?.id ?? (user as any)?.sub ?? ""),
+    [user]
+  );
+
+  const refresh = async () => {
     if (!id) return;
+    setLoading(true);
+    try {
+      const all = await fetchManagerMyFlights(id);
+      const mine = all.filter(
+        (f) => f.approvalStatus === "PENDING" || f.approvalStatus === "REJECTED"
+      );
+      setItems(mine);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const refresh = () => {
-      setLoading(true);
-      fetchManagerMyFlights(id)
-        .then((all) => {
-          const mine = all.filter((f) => f.approvalStatus === "PENDING" || f.approvalStatus === "REJECTED");
-          setItems(mine);
-        })
-        .finally(() => setLoading(false));
-    };
-
+  useEffect(() => {
+    if (!id) return;
     refresh();
-    const t = setInterval(refresh, 2000);
-    return () => clearInterval(t);
-  }, [user]);
+    // nema intervala
+  }, [id]);
 
   if (!user || !hasRole(["MENADZER"])) {
     return (
@@ -73,8 +79,12 @@ export default function ManagerMyFlightsPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-sky-700/70 via-blue-800/65 to-indigo-900/70" />
           <div className="relative z-10 p-6 sm:p-10 text-white">
-            <div className="text-xs tracking-widest uppercase text-white/80">DRS Fly • Menadžer</div>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">Moji letovi</h1>
+            <div className="text-xs tracking-widest uppercase text-white/80">
+              DRS Fly • Menadžer
+            </div>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Moji letovi
+            </h1>
             <p className="mt-2 text-sm text-white/85 max-w-2xl">
               Ovde vidiš letove na čekanju ili odbijene i možeš da ih izmeniš.
             </p>
@@ -87,9 +97,25 @@ export default function ManagerMyFlightsPage() {
               <div className="text-sm text-gray-600">
                 Ukupno: <b className="text-gray-900">{items.length}</b>
               </div>
-              <Button variant="primary" className="rounded-2xl" onClick={() => nav("/manager/flights/new")}>
-                Novi let
-              </Button>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  className="rounded-2xl"
+                  onClick={refresh}
+                  disabled={loading}
+                >
+                  {loading ? "Osvežavam..." : "Osveži"}
+                </Button>
+
+                <Button
+                  variant="primary"
+                  className="rounded-2xl"
+                  onClick={() => nav("/flights/new")}
+                >
+                  Novi let
+                </Button>
+              </div>
             </div>
 
             {loading ? (
@@ -97,7 +123,10 @@ export default function ManagerMyFlightsPage() {
             ) : (
               <div className="mt-4 grid gap-3">
                 {items.map((f) => (
-                  <div key={f.id} className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                  <div
+                    key={f.id}
+                    className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white"
+                  >
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
 
                     <div className="p-4 sm:p-5">
@@ -143,7 +172,7 @@ export default function ManagerMyFlightsPage() {
                         <Button
                           variant="secondary"
                           className="rounded-2xl"
-                          onClick={() => nav(`/manager/flights/${f.id}/edit`)}
+                          onClick={() => nav(`/flights/${f.id}/edit`)}
                         >
                           Izmeni i pošalji ponovo
                         </Button>

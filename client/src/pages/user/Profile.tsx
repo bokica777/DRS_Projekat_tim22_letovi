@@ -7,45 +7,107 @@ import { Label } from "../../components/common/Label";
 import { Select } from "../../components/common/Select";
 import { updateMe, uploadProfileImage } from "../../api/users";
 
+// Ako tvoj User nema avatarDataUrl u tipu, ovde ga "proširi" lokalno
+type ProfileForm = User & { avatarDataUrl?: string };
+
 export default function ProfilePage() {
   const { user, refreshMe } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState<User | null>(user ? { ...user } : null);
+  const [form, setForm] = useState<ProfileForm | null>(user ? { ...(user as ProfileForm) } : null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
+  // cache-bust za avatar da ne vuče stari fajl iz cache-a
+  const [avatarVersion, setAvatarVersion] = useState<number>(0);
+
+  // Kad stigne user iz refreshMe, nemoj da pregaziš avatar ako ga backend ne vraća
   useEffect(() => {
-    if (user) setForm({ ...user });
+    if (!user) return;
+
+    setForm((prev) => {
+      const incoming = user as ProfileForm;
+
+      return {
+        ...incoming,
+        // zadrži prethodni avatar ako incoming nema ništa
+        avatarDataUrl: incoming.avatarDataUrl ?? prev?.avatarDataUrl ?? "",
+      };
+    });
   }, [user]);
 
-  const set = <K extends keyof User>(k: K, v: User[K]) =>
+  const set = <K extends keyof ProfileForm>(k: K, v: ProfileForm[K]) =>
     setForm((p) => (p ? { ...p, [k]: v } : p));
 
   const onAvatar = (file?: File) => {
     if (!file) return;
+
     setAvatarFile(file);
+
+    // Preview (data URL) - ovo je samo lokalno da se vidi odmah
     const reader = new FileReader();
-    reader.onload = () => set("avatarDataUrl", String(reader.result));
+    reader.onload = () => {
+      set("avatarDataUrl", String(reader.result));
+      setAvatarVersion(Date.now()); // da img rerenderuje
+    };
     reader.readAsDataURL(file);
   };
 
+  // ✅ Najbitnije: origin (http://localhost:5544), NE /api/v1
   const apiOrigin = useMemo(() => {
     const v = (import.meta as any).env?.VITE_API_URL as string | undefined;
-    return (v || "").replace(/\/$/, "");
+    const fallback = window.location.origin;
+
+    if (!v) return fallback;
+
+    try {
+      return new URL(v).origin;
+    } catch {
+      return fallback;
+    }
   }, []);
 
   const avatarSrc = useMemo(() => {
-    if (!form?.avatarDataUrl) return "";
-    if (form.avatarDataUrl.startsWith("data:")) return form.avatarDataUrl;
-    if (form.avatarDataUrl.startsWith("/static")) return `${apiOrigin}${form.avatarDataUrl}`;
-    return form.avatarDataUrl;
-  }, [form?.avatarDataUrl, apiOrigin]);
+    const raw = form?.avatarDataUrl || "";
+    if (!raw) return "";
+
+    // preview base64
+    if (raw.startsWith("data:")) return raw;
+
+    // već apsolutni URL
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      const sep = raw.includes("?") ? "&" : "?";
+      return `${raw}${sep}v=${avatarVersion || 0}`;
+    }
+
+    // relativno: "/static/..." ili "static/..."
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    const abs = `${apiOrigin}${path}`;
+
+    const sep = abs.includes("?") ? "&" : "?";
+    return `${abs}${sep}v=${avatarVersion || 0}`;
+  }, [form?.avatarDataUrl, apiOrigin, avatarVersion]);
+
+  // pokušaj da izvučemo putanju iz upload odgovora bez obzira kako si nazvao polje
+  const pickAvatarPath = (res: any): string | "" => {
+    return (
+      res?.avatarPath ||
+      res?.avatarUrl ||
+      res?.url ||
+      res?.path ||
+      res?.data?.avatarPath ||
+      res?.data?.avatarUrl ||
+      res?.data?.url ||
+      res?.data?.path ||
+      ""
+    );
+  };
 
   const save = async () => {
     if (!form) return;
 
     setSaving(true);
     try {
+      // 1) Sačuvaj tekstualne podatke
       await updateMe({
         firstName: form.firstName,
         lastName: form.lastName,
@@ -56,13 +118,31 @@ export default function ProfilePage() {
         number: form.streetNumber,
       });
 
+      // 2) Ako ima slike - upload i odmah setuj avatar putanju u state
       if (avatarFile) {
-        await uploadProfileImage(avatarFile);
+        const res = await uploadProfileImage(avatarFile);
         setAvatarFile(null);
+
+        const avatarPath = pickAvatarPath(res);
+
+        // Ako backend vrati putanju, setuj odmah (da ostane posle save)
+        if (avatarPath) {
+          set("avatarDataUrl", avatarPath);
+          setAvatarVersion(Date.now()); // cache-bust posle upload
+        } else {
+          // Ako ne vraća ništa, i dalje ćemo pokušati refreshMe,
+          // ali ovo je signal da upload endpoint treba da vraća putanju
+          console.warn("uploadProfileImage nije vratio avatar putanju (avatarPath/avatarUrl/url...).");
+        }
       }
 
+      // 3) Povuci sveže podatke (ako backend vraća avatar - super; ako ne, neće pregaziti jer čuvamo prev)
       await refreshMe();
+
       alert("Sačuvano!");
+    } catch (e) {
+      console.error(e);
+      alert("Greška pri čuvanju profila.");
     } finally {
       setSaving(false);
     }
@@ -87,9 +167,7 @@ export default function ProfilePage() {
           <div className="relative z-10 p-6 sm:p-10 text-white">
             <div className="text-xs tracking-widest uppercase text-white/80">DRS Fly • Profil</div>
             <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">Moj profil</h1>
-            <p className="mt-2 text-sm text-white/85 max-w-2xl">
-              Ažuriraj svoje podatke i sliku profila.
-            </p>
+            <p className="mt-2 text-sm text-white/85 max-w-2xl">Ažuriraj svoje podatke i sliku profila.</p>
           </div>
         </div>
 

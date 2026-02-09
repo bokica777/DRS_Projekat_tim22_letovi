@@ -1,6 +1,7 @@
 import { http } from "./https";
 import { endpoints } from "./endpoints";
-import type { Flight, Airline } from "../types/flights";
+import type { Flight } from "../types/flights"; 
+import type { Airline } from "../types/airlines";
 
 export type FlightDto = {
   id: number;

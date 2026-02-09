@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Rating } from "../../types/ratings";
 import { fetchAdminRatings, fetchFlightNameById, type AdminRating } from "../../api/adminRatings";
 
 function stars(n: number) {

@@ -1,4 +1,4 @@
-import { Route, Routes} from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import FlightsPage from "./pages/user/Flights";
 import LoginPage from "./pages/public/Login";
 import RegisterPage from "./pages/public/Register";
@@ -16,9 +16,10 @@ import ProfilePage from "./pages/user/Profile";
 
 import TopBar from "./components/layout/TopBar";
 import { useAuth } from "./auth/AuthContext";
+import NotFound from "./pages/public/Notfound";
 
 export default function App() {
-  const {user} = useAuth();
+  const { user } = useAuth();
   return (
     <div>
       {user && <TopBar />}
@@ -100,7 +101,7 @@ export default function App() {
         />
 
         <Route
-          path="/manager/flights/new"
+          path="/flights/new"
           element={
             <ProtectedRoute roles={["MENADZER"]}>
               <ManagerCreateFlightPage />
@@ -109,7 +110,7 @@ export default function App() {
         />
 
         <Route
-          path="/manager/flights"
+          path="/flights/mine"
           element={
             <ProtectedRoute roles={["MENADZER"]}>
               <ManagerMyFlightsPage />
@@ -118,7 +119,7 @@ export default function App() {
         />
 
         <Route
-          path="/manager/flights/:id/edit"
+          path="/flights/:id/edit"
           element={
             <ProtectedRoute roles={["MENADZER"]}>
               <ManagerEditFlightPage />
@@ -126,7 +127,10 @@ export default function App() {
           }
         />
 
-        <Route path="*" element={<LoginPage />} />
+
+
+        <Route path="*" element={<NotFound />} />
+
       </Routes>
     </div>
   );

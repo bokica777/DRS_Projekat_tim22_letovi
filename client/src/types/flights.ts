@@ -1,30 +1,21 @@
-export type FlightStatus =
-  | "PENDING"
-  | "PLANNED"
-  | "IN_PROGRESS"
-  | "FINISHED"
-  | "CANCELLED"
-  | "REJECTED";
-
-export type Airline = {
-  id: number;
-  name: string;
-};
+export type FlightStatus = "PLANNED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type Flight = {
   id: number;
   name: string;
   airlineId: number;
   airlineName: string;
-  departureTime: string; // ISO
+  departureTime: string;
   from: string;
   to: string;
   durationMinutes: number;
   distanceKm: number;
   price: number;
+
   status: FlightStatus;
-  rejectionReason?: string;
+  approvalStatus: ApprovalStatus;         
+  rejectionReason?: string | null;        
+
   createdBy?: string;
 };
-
-

@@ -71,6 +71,10 @@ export default function ManagerEditFlightPage() {
     }
   };
 
+  if (flight.approvalStatus !== "REJECTED") {
+    return <div className="p-6 text-sm text-gray-600">Let nije odbijen (nema izmena).</div>;
+  }
+  
   return (
     <div className="min-h-[calc(100vh-56px)] px-4 py-10">
       <div className="mx-auto w-full max-w-6xl">
@@ -118,7 +122,7 @@ export default function ManagerEditFlightPage() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" className="rounded-2xl" onClick={() => nav("/manager/flights")}>
+                <Button type="button" variant="secondary" className="rounded-2xl" onClick={() => nav("/flights/mine")}>
                   Nazad
                 </Button>
                 <Button type="submit" variant="primary" className="rounded-2xl px-5" disabled={saving}>

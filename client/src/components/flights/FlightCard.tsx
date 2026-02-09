@@ -7,13 +7,21 @@ import { statusBadgeClass, statusLabelSR } from "../../utils/status";
 
 type Props = {
   flight: Flight;
-  onBuy?: (id: number) => void;
-  onCancel?: (id: number) => void;
-  onDelete?: (id: number) => void;
+  onBuy: (id: number) => void;
+  onCancel: (id: number) => void;
+  onDelete: (id: number) => void;
   isBuying?: boolean;
+  canRate?: boolean;
 };
 
-export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Props) {
+export function FlightCard({
+  flight,
+  onBuy,
+  onCancel,
+  onDelete,
+  isBuying,
+  canRate,
+}: Props) {
   const { user, hasRole } = useAuth();
 
   const canBuy =
@@ -29,11 +37,9 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
   const showRejectedReason =
     !!user &&
     hasRole(["MENADZER"]) &&
-    flight.status === "REJECTED" &&
+    flight.approvalStatus === "REJECTED" &&
     !!flight.rejectionReason;
 
-  const canRate =
-    !!user && hasRole(["KORISNIK", "MENADZER"]) && flight.status === "FINISHED";
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
@@ -42,31 +48,31 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs text-gray-500">{flight.airlineName}</div>
+            <div className="text-xs text-gray-500">{(flight as any).airlineName}</div>
             <div className="mt-0.5 truncate text-lg font-semibold tracking-tight">
               {flight.name}
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{flight.from}</span>
+              <span className="font-semibold text-gray-900">{(flight as any).from}</span>
               <span className="text-gray-400">→</span>
-              <span className="font-semibold text-gray-900">{flight.to}</span>
+              <span className="font-semibold text-gray-900">{(flight as any).to}</span>
               <span className="text-gray-300">•</span>
-              <span>{flight.distanceKm} km</span>
+              <span>{(flight as any).distanceKm} km</span>
               <span className="text-gray-300">•</span>
-              <span>{flight.durationMinutes} min</span>
+              <span>{(flight as any).durationMinutes} min</span>
             </div>
           </div>
 
           <div className="text-right shrink-0">
-            <div className="text-lg font-extrabold">{flight.price} €</div>
+            <div className="text-lg font-extrabold">{(flight as any).price} €</div>
             <div
               className={[
                 "mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
-                statusBadgeClass(flight.status),
+                statusBadgeClass((flight as any).status),
               ].join(" ")}
             >
-              {statusLabelSR(flight.status)}
+              {statusLabelSR((flight as any).status)}
             </div>
           </div>
         </div>
@@ -75,15 +81,15 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
           <div className="text-xs text-gray-600">
             Polazak:{" "}
             <b className="text-gray-900">
-              {new Date(flight.departureTime).toLocaleString()}
+              {new Date((flight as any).departureTime).toLocaleString()}
             </b>
           </div>
 
-          {flight.status === "IN_PROGRESS" && (
+          {(flight as any).status === "IN_PROGRESS" && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
               <FlightTimer
-                departureTime={flight.departureTime}
-                durationMinutes={flight.durationMinutes}
+                departureTime={(flight as any).departureTime}
+                durationMinutes={(flight as any).durationMinutes}
               />
             </div>
           )}
@@ -103,7 +109,7 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
               <Button
                 variant="primary"
                 disabled={isBuying}
-                onClick={() => onBuy?.(flight.id)}
+                onClick={() => onBuy(flight.id)}
                 className="rounded-2xl px-4"
               >
                 {isBuying ? "Obrada..." : "Kupi kartu"}
@@ -113,7 +119,7 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
             {canCancel && (
               <Button
                 variant="danger"
-                onClick={() => onCancel?.(flight.id)}
+                onClick={() => onCancel(flight.id)}
                 className="rounded-2xl px-4"
               >
                 Otkaži let
@@ -123,7 +129,7 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
             {canDelete && (
               <Button
                 variant="danger"
-                onClick={() => onDelete?.(flight.id)}
+                onClick={() => onDelete(flight.id)}
                 className="rounded-2xl px-4"
               >
                 Obriši let
@@ -134,11 +140,15 @@ export function FlightCard({ flight, onBuy, onCancel, onDelete, isBuying }: Prop
 
         {showRejectedReason && (
           <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            Odbijen: <b>{flight.rejectionReason}</b>
+            Odbijen: <b>{(flight as any).rejectionReason}</b>
           </div>
         )}
 
-       {canRate && <RateFlight flightId={flight.id} />}
+        {canRate && (
+          <div className="mt-3">
+            <RateFlight flightId={flight.id} />
+          </div>
+        )}
       </div>
     </div>
   );

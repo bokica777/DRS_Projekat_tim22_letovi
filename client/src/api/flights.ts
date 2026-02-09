@@ -6,13 +6,19 @@ export type FlightDto = {
   id: number;
   name: string;
   company: { id: number; name: string } | null;
-  distance_km: number;
-  duration_min: number;
+
+  distance_km: number | string | null;
+
+  duration_min?: number | string | null;
+  duration_sec?: number | string | null;
+
   departure_time: string | null;
   from_airport: string;
   to_airport: string;
   created_by_user_id: string;
-  price: number;
+
+  price: number | string | null;
+
   status: "PLANNED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
   approval_status: "PENDING" | "APPROVED" | "REJECTED";
   rejection_reason: string | null;
@@ -26,7 +32,18 @@ function uiTabToApiTab(tab: UiTab): "planned" | "in_progress" | "history" {
   return "history";
 }
 
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "string" ? Number(v) : (v as number);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mapFlightDtoToFlight(d: FlightDto): Flight {
+  const durMin = toNum(d.duration_min);
+  const durSec = toNum(d.duration_sec);
+  const durationMinutes =
+    durMin ?? (durSec != null ? Math.max(1, Math.round(durSec / 60)) : 0);
+
   return {
     id: d.id,
     name: d.name,
@@ -35,11 +52,13 @@ function mapFlightDtoToFlight(d: FlightDto): Flight {
     departureTime: d.departure_time ?? "",
     from: d.from_airport,
     to: d.to_airport,
-    distanceKm: d.distance_km,
-    durationMinutes: d.duration_min,
+    distanceKm: toNum(d.distance_km) ?? 0,
+    durationMinutes,
     createdBy: d.created_by_user_id,
-    price: d.price,
+    price: toNum(d.price) ?? 0,
     status: d.status,
+    approvalStatus: d.approval_status,
+    rejectionReason: d.rejection_reason,
   };
 }
 

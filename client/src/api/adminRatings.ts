@@ -38,9 +38,17 @@ function mapRatingDto(d: RatingDto): AdminRating {
 }
 
 export async function fetchAdminRatings(): Promise<AdminRating[]> {
-  const res = await http.get(endpoints.admin.ratings);
-  const data = res.data as RatingDto[];
-  return data.map(mapRatingDto);
+  const res = await http.get(endpoints.ratings.admin);
+
+  const raw = res.data as any;
+  const arr =
+    Array.isArray(raw) ? raw :
+    Array.isArray(raw?.items) ? raw.items :
+    Array.isArray(raw?.ratings) ? raw.ratings :
+    Array.isArray(raw?.data) ? raw.data :
+    [];
+
+  return arr.map(mapRatingDto);
 }
 
 export async function fetchFlightNameById(flightId: number): Promise<string> {
