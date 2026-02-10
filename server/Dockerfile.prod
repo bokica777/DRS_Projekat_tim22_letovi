@@ -1,0 +1,19 @@
+# Production image for Server (Flask + Socket.IO)
+FROM python:3.11-slim
+
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+
+# System deps (psycopg2-binary usually ok without build tools)
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY . /app
+
+EXPOSE 5000
+
+# Use Gunicorn (not Werkzeug) + eventlet worker for Socket.IO
+CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:5000", "app.main:app"]
