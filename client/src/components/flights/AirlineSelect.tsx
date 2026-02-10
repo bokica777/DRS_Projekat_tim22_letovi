@@ -1,4 +1,4 @@
-import type { Airline } from "../../types/flights";
+import type { Airline } from "../../types/airlines";
 import { Select } from "../common/Select";
 
 type Props = {
