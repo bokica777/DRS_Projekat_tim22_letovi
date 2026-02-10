@@ -38,7 +38,7 @@ function mapMeToUser(me: BackendMe): User {
     street: me.street,
     streetNumber: me.number,
     balance: me.balance,
-    avatarDataUrl: me.profileImage ?? undefined,
+    avatarDataUrl: `${endpoints.users.uploadImage}?t=${Date.now()}`,
   };
 }
 
@@ -63,15 +63,28 @@ export async function updateMe(dto: UpdateMeDto): Promise<User> {
   return mapMeToUser(data);
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function uploadProfileImage(file: File): Promise<User> {
   const fd = new FormData();
   fd.append("file", file);
 
-  const { data } = await http.post<BackendMe>(endpoints.users.uploadImage, fd, {
-    headers: { "Content-Type": "multipart/form-data" },
+  await http.post(endpoints.users.uploadImage, fd, {
+    headers: { "Content-Type": undefined as any },
   });
 
-  return mapMeToUser(data);
+  // uzmi svež user (za ostala polja), ali sliku za UI daj iz lokalnog fajla
+  const me = await getMe();
+  const dataUrl = await fileToDataUrl(file);
+
+  return { ...me, avatarDataUrl: dataUrl };
 }
 
 export async function deposit(amount: number) {

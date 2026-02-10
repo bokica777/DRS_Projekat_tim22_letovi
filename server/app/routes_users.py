@@ -203,3 +203,25 @@ def upload_profile_image():
     db.session.commit()
 
     return jsonify(user.to_dict()), 200
+
+from flask import send_file
+
+@users_bp.get("/me/image")
+@auth_required
+def get_profile_image():
+    user = _get_current_user()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.profile_image:
+        return jsonify({"error": "No profile image"}), 404
+
+    # user.profile_image je tipa "/static/uploads/ime.png"
+    # moramo ga prevesti u stvarnu putanju na disku: server/app/static/uploads/ime.png
+    rel = user.profile_image.lstrip("/")  # "static/uploads/ime.png"
+    abs_path = os.path.join(BASE_DIR, rel)
+
+    if not os.path.exists(abs_path):
+        return jsonify({"error": "Image not found"}), 404
+
+    return send_file(abs_path)

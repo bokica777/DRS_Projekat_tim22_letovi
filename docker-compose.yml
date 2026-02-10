@@ -74,6 +74,8 @@ services:
       SMTP_USER: "opacicrelja@gmail.com"
       SMTP_PASS: "kccn gtsb kfwf wtbd"
       MAIL_FROM: "Avio Letovi <opacicrelja@gmail.com>"
+    volumes:
+      - ./server/app/static/uploads:/app/static/uploads
     depends_on:
       db1:
         condition: service_healthy

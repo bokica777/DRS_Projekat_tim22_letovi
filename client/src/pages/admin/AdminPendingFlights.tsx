@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../components/common/Button";
-import { adminApproveFlight, adminRejectFlight, fetchPendingFlights, type AdminFlight } from "../../api/adminFlights";
+import {
+  adminApproveFlight,
+  adminRejectFlight,
+  fetchPendingFlights,
+  type AdminFlight,
+} from "../../api/adminFlights";
 
 function badge(status: AdminFlight["approvalStatus"]) {
   switch (status) {
@@ -36,6 +41,17 @@ function errMsg(e: any): string {
   return e?.message ? String(e.message) : "Greška";
 }
 
+// Admin akcije (approve/reject) dozvoljene su samo dok let NIJE krenuo.
+function adminActionBlockedReason(f: AdminFlight): string | null {
+  const st = (f as any).status as string | undefined;
+  if (!st) return null; // ako backend ne šalje status, ne blokiramo na frontu
+  if (st === "IN_PROGRESS")
+    return "Let je već u toku — ne može se odobriti/odbiti.";
+  if (st === "FINISHED")
+    return "Let je već završen — ne može se odobriti/odbiti.";
+  return null; // PLANNED -> ok
+}
+
 export default function AdminPendingFlights() {
   const [flights, setFlights] = useState<AdminFlight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +74,10 @@ export default function AdminPendingFlights() {
     refresh();
   }, []);
 
-  const approve = async (id: number) => {
+  const approve = async (id: number, f?: AdminFlight) => {
+    const reason = f ? adminActionBlockedReason(f) : null;
+    if (reason) return alert(reason);
+
     setErr(null);
     try {
       await adminApproveFlight(id);
@@ -69,7 +88,10 @@ export default function AdminPendingFlights() {
     }
   };
 
-  const reject = async (id: number) => {
+  const reject = async (id: number, f?: AdminFlight) => {
+    const blocked = f ? adminActionBlockedReason(f) : null;
+    if (blocked) return alert(blocked);
+
     const reason = prompt("Razlog odbijanja:");
     if (!reason?.trim()) return;
 
@@ -98,9 +120,15 @@ export default function AdminPendingFlights() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-sky-700/70 via-blue-800/65 to-indigo-900/70" />
           <div className="relative z-10 p-6 sm:p-10 text-white">
-            <div className="text-xs tracking-widest uppercase text-white/80">DRS Fly • Admin</div>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">Letovi na čekanju</h1>
-            <p className="mt-2 text-sm text-white/85 max-w-2xl">Odobri ili odbij letove koje su menadžeri poslali.</p>
+            <div className="text-xs tracking-widest uppercase text-white/80">
+              DRS Fly • Admin
+            </div>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Letovi na čekanju
+            </h1>
+            <p className="mt-2 text-sm text-white/85 max-w-2xl">
+              Odobri ili odbij letove koje su menadžeri poslali.
+            </p>
           </div>
         </div>
 
@@ -110,7 +138,12 @@ export default function AdminPendingFlights() {
               <div className="text-sm text-gray-600">
                 Ukupno: <b className="text-gray-900">{flights.length}</b>
               </div>
-              <Button variant="secondary" className="rounded-2xl" onClick={refresh} disabled={loading}>
+              <Button
+                variant="secondary"
+                className="rounded-2xl"
+                onClick={refresh}
+                disabled={loading}
+              >
                 Osveži
               </Button>
             </div>
@@ -125,52 +158,91 @@ export default function AdminPendingFlights() {
               <div className="mt-4 text-sm text-gray-600">Učitavanje…</div>
             ) : (
               <div className="mt-4 grid gap-3">
-                {flights.map((f) => (
-                  <div key={f.id} className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white">
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
+                {flights.map((f) => {
+                  const blockedReason = adminActionBlockedReason(f);
+                  const disabled = !!blockedReason;
 
-                    <div className="p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-xs text-gray-500">{f.airlineName}</div>
-                          <div className="mt-0.5 truncate text-lg font-semibold">{f.name}</div>
-                          <div className="mt-2 text-sm text-gray-600">
-                            <b className="text-gray-900">{f.from}</b>{" "}
-                            <span className="text-gray-400">→</span>{" "}
-                            <b className="text-gray-900">{f.to}</b>
+                  return (
+                    <div
+                      key={f.id}
+                      className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white"
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
+
+                      <div className="p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs text-gray-500">
+                              {f.airlineName}
+                            </div>
+                            <div className="mt-0.5 truncate text-lg font-semibold">
+                              {f.name}
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                              <b className="text-gray-900">{f.from}</b>{" "}
+                              <span className="text-gray-400">→</span>{" "}
+                              <b className="text-gray-900">{f.to}</b>
+                            </div>
+
+                            {/* Ako API šalje status, prikaži ga (nije obavezno) */}
+                            {(f as any).status && (
+                              <div className="mt-1 text-xs text-gray-500">
+                                Status leta: <b>{String((f as any).status)}</b>
+                              </div>
+                            )}
+
+                            {blockedReason && (
+                              <div className="mt-2 text-xs text-rose-700">
+                                {blockedReason}
+                              </div>
+                            )}
                           </div>
-                        </div>
 
-                        <div className="text-right shrink-0">
-                          <div className="text-lg font-extrabold">{f.price} €</div>
-                          <div
-                            className={[
-                              "mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
-                              badge(f.approvalStatus),
-                            ].join(" ")}
-                          >
-                            {statusLabelSR(f.approvalStatus)}
+                          <div className="text-right shrink-0">
+                            <div className="text-lg font-extrabold">
+                              {f.price} €
+                            </div>
+                            <div
+                              className={[
+                                "mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+                                badge(f.approvalStatus),
+                              ].join(" ")}
+                            >
+                              {statusLabelSR(f.approvalStatus)}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="relative">
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-[#f6f7fb] border border-gray-200 -translate-x-1/2" />
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-[#f6f7fb] border border-gray-200 translate-x-1/2" />
-                      <div className="border-t border-dashed border-gray-200" />
-                    </div>
+                      <div className="relative">
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-[#f6f7fb] border border-gray-200 -translate-x-1/2" />
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-[#f6f7fb] border border-gray-200 translate-x-1/2" />
+                        <div className="border-t border-dashed border-gray-200" />
+                      </div>
 
-                    <div className="p-4 sm:p-5 flex flex-wrap justify-end gap-2">
-                      <Button variant="primary" className="rounded-2xl px-4" onClick={() => approve(f.id)}>
-                        Odobri
-                      </Button>
-                      <Button variant="danger" className="rounded-2xl px-4" onClick={() => reject(f.id)}>
-                        Odbij
-                      </Button>
+                      <div className="p-4 sm:p-5 flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="primary"
+                          className="rounded-2xl px-4"
+                          onClick={() => approve(f.id, f)}
+                          disabled={disabled}
+                          title={blockedReason ?? ""}
+                        >
+                          Odobri
+                        </Button>
+                        <Button
+                          variant="danger"
+                          className="rounded-2xl px-4"
+                          onClick={() => reject(f.id, f)}
+                          disabled={disabled}
+                          title={blockedReason ?? ""}
+                        >
+                          Odbij
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {flights.length === 0 && (
                   <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">

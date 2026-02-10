@@ -24,22 +24,21 @@ export function FlightCard({
 }: Props) {
   const { user, hasRole } = useAuth();
 
+  // === Pravila ===
+  // Kupovina: korisnik/menadžer može samo dok let nije počeo
   const canBuy =
     !!user && hasRole(["KORISNIK", "MENADZER"]) && flight.status === "PLANNED";
 
-  const canCancel =
-    !!user &&
-    hasRole(["ADMIN"]) &&
-    (flight.status === "PLANNED" || flight.status === "IN_PROGRESS");
-
-  const canDelete = !!user && hasRole(["ADMIN"]);
+  // Admin: otkazivanje i brisanje samo dok let nije počeo (PLANNED)
+  // (Let koji je IN_PROGRESS ili FINISHED ne sme da se otkazuje/briše)
+  const canCancel = !!user && hasRole(["ADMIN"]) && flight.status === "PLANNED";
+  const canDelete = !!user && hasRole(["ADMIN"]) && flight.status === "PLANNED";
 
   const showRejectedReason =
     !!user &&
     hasRole(["MENADZER"]) &&
     flight.approvalStatus === "REJECTED" &&
     !!flight.rejectionReason;
-
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
@@ -48,15 +47,21 @@ export function FlightCard({
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs text-gray-500">{(flight as any).airlineName}</div>
+            <div className="text-xs text-gray-500">
+              {(flight as any).airlineName}
+            </div>
             <div className="mt-0.5 truncate text-lg font-semibold tracking-tight">
               {flight.name}
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{(flight as any).from}</span>
+              <span className="font-semibold text-gray-900">
+                {(flight as any).from}
+              </span>
               <span className="text-gray-400">→</span>
-              <span className="font-semibold text-gray-900">{(flight as any).to}</span>
+              <span className="font-semibold text-gray-900">
+                {(flight as any).to}
+              </span>
               <span className="text-gray-300">•</span>
               <span>{(flight as any).distanceKm} km</span>
               <span className="text-gray-300">•</span>
@@ -65,7 +70,9 @@ export function FlightCard({
           </div>
 
           <div className="text-right shrink-0">
-            <div className="text-lg font-extrabold">{(flight as any).price} €</div>
+            <div className="text-lg font-extrabold">
+              {(flight as any).price} €
+            </div>
             <div
               className={[
                 "mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",

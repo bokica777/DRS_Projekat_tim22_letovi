@@ -4,6 +4,7 @@ import type { Flight } from "../../types/flights";
 import { fetchAirlines } from "../../api/airlines";
 import { fetchFlights } from "../../api/flights";
 import { buyTicket, myTickets } from "../../api/tickets";
+import { adminCancelFlight, adminDeleteFlight } from "../../api/adminFlights";
 import { SearchBar } from "../../components/flights/SearchBar";
 import { AirlineSelect } from "../../components/flights/AirlineSelect";
 import { FlightCard } from "../../components/flights/FlightCard";
@@ -18,7 +19,13 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "DONE", label: "Završeni / Otkazani" },
 ];
 
-
+function errMsg(e: any): string {
+  const d = e?.response?.data;
+  if (typeof d === "string") return d;
+  if (d?.error) return String(d.error);
+  if (d?.message) return String(d.message);
+  return e?.message ? String(e.message) : "Greška";
+}
 
 export default function FlightsPage() {
   const [active, setActive] = useState<Tab>("PLANNED");
@@ -30,11 +37,19 @@ export default function FlightsPage() {
 
   const { user, hasRole } = useAuth();
   const [processingFlightIds, setProcessingFlightIds] = useState<number[]>([]);
+  const [adminActionIds, setAdminActionIds] = useState<number[]>([]);
 
   const [purchasedFlightIds, setPurchasedFlightIds] = useState<number[]>([]);
-  const purchasedSet = useMemo(() => new Set(purchasedFlightIds), [purchasedFlightIds]);
+  const purchasedSet = useMemo(
+    () => new Set(purchasedFlightIds),
+    [purchasedFlightIds],
+  );
 
-  const [notice, setNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{
+    type: "error" | "success";
+    text: string;
+  } | null>(null);
+
   const showError = (text: string) => {
     setNotice({ type: "error", text });
     setTimeout(() => setNotice(null), 3500);
@@ -44,7 +59,6 @@ export default function FlightsPage() {
     setNotice({ type: "success", text });
     setTimeout(() => setNotice(null), 2500);
   };
-
 
   const refreshMyTickets = async () => {
     if (!user || !hasRole(["KORISNIK"])) {
@@ -63,20 +77,29 @@ export default function FlightsPage() {
     }
   };
 
+  const refreshFlights = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchFlights({ tab: active, search, airlineId });
+      setFlights(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAirlines().then(setAirlines);
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    fetchFlights({ tab: active, search, airlineId })
-      .then(setFlights)
-      .finally(() => setLoading(false));
+    refreshFlights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, search, airlineId]);
 
   useEffect(() => {
     refreshMyTickets();
-  }, [user?.id, user?.role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, (user as any)?.role]);
 
   const handleBuy = async (flightId: number) => {
     if (!user || !hasRole(["KORISNIK"])) return;
@@ -88,12 +111,7 @@ export default function FlightsPage() {
       showSuccess("✅ Kupovina je pokrenuta… (obrada traje par sekundi)");
       setTimeout(refreshMyTickets, 2500);
     } catch (e: any) {
-      const d = e?.response?.data;
-
-      const msg =
-        typeof d === "string"
-          ? d
-          : d?.error ?? d?.message ?? "Neuspešna kupovina.";
+      const msg = errMsg(e);
 
       if (/balance|sredstav|insufficient/i.test(msg)) {
         showError("❌ Nemate dovoljno sredstava za kupovinu karte.");
@@ -105,16 +123,48 @@ export default function FlightsPage() {
     }
   };
 
-  const handleCancel = (flightId: number) => {
+  const handleCancel = async (flightId: number) => {
+    if (!user || !hasRole(["ADMIN"])) return;
+
     const ok = window.confirm("Da li ste sigurni da želite da otkažete let?");
     if (!ok) return;
-    setFlights((prev) => prev.map((f) => (f.id === flightId ? { ...f, status: "CANCELLED" } : f)));
+
+    setAdminActionIds((p) => [...p, flightId]);
+    try {
+      await adminCancelFlight(flightId);
+      showSuccess("✅ Let je otkazan.");
+
+      // Ukloni iz trenutne liste (PLANNED), a zatim prebaci na DONE da se vidi među otkazanim
+      setFlights((prev) => prev.filter((f) => f.id !== flightId));
+
+      // Prebaci admina na tab gde se vide otkazani + auto refresh preko useEffect
+      if (active !== "DONE") setActive("DONE");
+      else await refreshFlights();
+    } catch (e: any) {
+      showError(`❌ ${errMsg(e)}`);
+    } finally {
+      setAdminActionIds((p) => p.filter((id) => id !== flightId));
+    }
   };
 
-  const handleDelete = (flightId: number) => {
-    const ok = window.confirm("Obrisati let? Ova akcija je trajna (mock).");
+  const handleDelete = async (flightId: number) => {
+    if (!user || !hasRole(["ADMIN"])) return;
+
+    const ok = window.confirm("Obrisati let? Ova akcija je trajna.");
     if (!ok) return;
-    setFlights((prev) => prev.filter((f) => f.id !== flightId));
+
+    setAdminActionIds((p) => [...p, flightId]);
+    try {
+      await adminDeleteFlight(flightId);
+      showSuccess("✅ Let je obrisan.");
+
+      // odmah nestaje sa UI
+      setFlights((prev) => prev.filter((f) => f.id !== flightId));
+    } catch (e: any) {
+      showError(`❌ ${errMsg(e)}`);
+    } finally {
+      setAdminActionIds((p) => p.filter((id) => id !== flightId));
+    }
   };
 
   return (
@@ -135,15 +185,19 @@ export default function FlightsPage() {
               ))}
             </div>
 
-
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <SearchBar value={search} onChange={setSearch} />
               </div>
-              <AirlineSelect airlines={airlines} value={airlineId} onChange={setAirlineId} />
+              <AirlineSelect
+                airlines={airlines}
+                value={airlineId}
+                onChange={setAirlineId}
+              />
             </div>
           </div>
         </div>
+
         {notice && (
           <div
             className={[
@@ -166,6 +220,7 @@ export default function FlightsPage() {
             </div>
           </div>
         )}
+
         {loading ? (
           <div className="mt-4 text-sm text-gray-600">Učitavanje…</div>
         ) : (
@@ -177,19 +232,28 @@ export default function FlightsPage() {
                 ["FINISHED", "DONE", "COMPLETED"].includes(String(f.status)) &&
                 purchasedSet.has(f.id);
 
+              const isBuying = processingFlightIds.includes(f.id);
+              const isAdminBusy = adminActionIds.includes(f.id);
 
               return (
-                <FlightCard
-                  key={f.id}
-                  flight={f}
-                  onBuy={handleBuy}
-                  onCancel={handleCancel}
-                  onDelete={handleDelete}
-                  isBuying={processingFlightIds.includes(f.id)}
-                  canRate={canRate}
-                />
+                <div key={f.id} className={isAdminBusy ? "opacity-80" : ""}>
+                  <FlightCard
+                    flight={f}
+                    onBuy={handleBuy}
+                    onCancel={handleCancel}
+                    onDelete={handleDelete}
+                    isBuying={isBuying}
+                    canRate={canRate}
+                  />
+                </div>
               );
             })}
+
+            {flights.length === 0 && (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+                Nema letova za prikaz u ovom tabu.
+              </div>
+            )}
           </div>
         )}
       </div>
