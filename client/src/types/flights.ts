@@ -1,6 +1,7 @@
 export type FlightStatus = "PLANNED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+
 export type Flight = {
   id: number;
   name: string;
@@ -14,7 +15,7 @@ export type Flight = {
   price: number;
 
   status: FlightStatus;
-  approvalStatus: ApprovalStatus;         
+  approvalStatus?: ApprovalStatus;         
   rejectionReason?: string | null;        
 
   createdBy?: string;
