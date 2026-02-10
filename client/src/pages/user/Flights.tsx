@@ -35,7 +35,7 @@ export default function FlightsPage() {
   const [airlineId, setAirlineId] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, refreshMe } = useAuth();
   const [processingFlightIds, setProcessingFlightIds] = useState<number[]>([]);
   const [adminActionIds, setAdminActionIds] = useState<number[]>([]);
 
@@ -102,26 +102,29 @@ export default function FlightsPage() {
   }, [user?.id, (user as any)?.role]);
 
   const handleBuy = async (flightId: number) => {
-    if (!user || !hasRole(["KORISNIK"])) return;
+  if (!user || !hasRole(["KORISNIK", "MENADZER"])) return;
 
-    setProcessingFlightIds((prev) => [...prev, flightId]);
+  setProcessingFlightIds((prev) => [...prev, flightId]);
 
-    try {
-      await buyTicket(flightId);
-      showSuccess("✅ Kupovina je pokrenuta… (obrada traje par sekundi)");
-      setTimeout(refreshMyTickets, 2500);
-    } catch (e: any) {
-      const msg = errMsg(e);
+  try {
+    await buyTicket(flightId);
+    await refreshMe();
 
-      if (/balance|sredstav|insufficient/i.test(msg)) {
-        showError("❌ Nemate dovoljno sredstava za kupovinu karte.");
-      } else {
-        showError(`❌ ${msg}`);
-      }
-    } finally {
-      setProcessingFlightIds((prev) => prev.filter((id) => id !== flightId));
+    showSuccess("✅ Kupovina je pokrenuta… (obrada traje par sekundi)");
+    setTimeout(refreshMyTickets, 2500);
+  } catch (e: any) {
+    const msg = errMsg(e);
+
+    if (/balance|sredstav|insufficient/i.test(msg)) {
+      showError("❌ Nemate dovoljno sredstava za kupovinu karte.");
+    } else {
+      showError(`❌ ${msg}`);
     }
-  };
+  } finally {
+    setProcessingFlightIds((prev) => prev.filter((id) => id !== flightId));
+  }
+};
+
 
   const handleCancel = async (flightId: number) => {
     if (!user || !hasRole(["ADMIN"])) return;

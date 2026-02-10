@@ -38,7 +38,7 @@ function mapMeToUser(me: BackendMe): User {
     street: me.street,
     streetNumber: me.number,
     balance: me.balance,
-    avatarDataUrl: `${endpoints.users.uploadImage}?t=${Date.now()}`,
+    avatarDataUrl: "",
   };
 }
 
@@ -70,6 +70,11 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+export async function fetchMyProfileImageObjectUrl(): Promise<string> {
+  const res = await http.get(endpoints.users.uploadImage, { responseType: "blob" });
+  return URL.createObjectURL(res.data);
 }
 
 export async function uploadProfileImage(file: File): Promise<User> {

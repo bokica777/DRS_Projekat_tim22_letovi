@@ -5,7 +5,7 @@ import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
 import { Label } from "../../components/common/Label";
 import { Select } from "../../components/common/Select";
-import { updateMe, uploadProfileImage } from "../../api/users";
+import { updateMe, uploadProfileImage, fetchMyProfileImageObjectUrl  } from "../../api/users";
 
 // Ako tvoj User nema avatarDataUrl u tipu, ovde ga "proširi" lokalno
 type ProfileForm = User & { avatarDataUrl?: string };
@@ -19,21 +19,54 @@ export default function ProfilePage() {
 
   // cache-bust za avatar da ne vuče stari fajl iz cache-a
   const [avatarVersion, setAvatarVersion] = useState<number>(0);
+  const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
 
   // Kad stigne user iz refreshMe, nemoj da pregaziš avatar ako ga backend ne vraća
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    setForm((prev) => {
-      const incoming = user as ProfileForm;
+  let alive = true;
 
-      return {
-        ...incoming,
-        // zadrži prethodni avatar ako incoming nema ništa
-        avatarDataUrl: incoming.avatarDataUrl ?? prev?.avatarDataUrl ?? "",
-      };
-    });
-  }, [user]);
+  // 1) prvo setuj formu (tekstualna polja) i ne pregazi postojeći avatar preview
+  setForm((prev) => {
+    const incoming = user as ProfileForm;
+
+    return {
+      ...incoming,
+      // zadrži prethodni avatar ako incoming nema ništa
+      avatarDataUrl: incoming.avatarDataUrl ?? prev?.avatarDataUrl ?? "",
+    };
+  });
+
+  // 2) zatim pokušaj da povučeš sliku preko axios-a kao blob (sa Bearer tokenom)
+  (async () => {
+    try {
+      const url = await fetchMyProfileImageObjectUrl(); // vrati blob:...
+      if (!alive) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      // očisti prethodni blob url da ne curi memorija
+      setAvatarObjectUrl((prevUrl) => {
+        if (prevUrl) URL.revokeObjectURL(prevUrl);
+        return url;
+      });
+
+      // setuj avatar na blob url (ovo radi u <img>)
+      setForm((prev) => (prev ? { ...prev, avatarDataUrl: url } : prev));
+      setAvatarVersion(Date.now());
+    } catch (e) {
+      // ako user nema sliku (404) ili nešto slično, samo ignoriši
+      // i ostaje preview ili prazan avatar
+    }
+  })();
+
+  return () => {
+    alive = false;
+  };
+}, [user]);
+
 
   const set = <K extends keyof ProfileForm>(k: K, v: ProfileForm[K]) =>
     setForm((p) => (p ? { ...p, [k]: v } : p));
@@ -72,6 +105,7 @@ export default function ProfilePage() {
 
     // preview base64
     if (raw.startsWith("data:")) return raw;
+    if (raw.startsWith("blob:")) return raw;
 
     // već apsolutni URL
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
