@@ -24,9 +24,10 @@ def _get_user_id_from_jwt() -> int | None:
 
 @tickets_bp.post("/api/tickets/buy")
 @auth_required
+@role_required("KORISNIK", "MENADZER")
 def buy_ticket_public():
     data = request.get_json(silent=True) or {}
-    flight_id = data.get("flight_id")
+    flight_id = data.get("flight_id") or data.get("flightId")
 
     if flight_id is None:
         return jsonify({"error": "flight_id is required"}), 400
