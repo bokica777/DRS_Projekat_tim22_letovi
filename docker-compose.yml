@@ -40,7 +40,9 @@ services:
     restart: unless-stopped
 
   flight-service:
-    build: ./flight-service
+    build:
+      context: ./flight-service
+      dockerfile: Dockerfile.dev
     ports:
       - "5001:5001"
     environment:
@@ -60,7 +62,9 @@ services:
     restart: unless-stopped
 
   server:
-    build: ./server
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
     environment:
@@ -71,8 +75,10 @@ services:
 
       SMTP_HOST: "smtp.gmail.com"
       SMTP_PORT: "587"
-      SMTP_USER: "opacicrelja@gmail.com"
-      SMTP_PASS: "kccn gtsb kfwf wtbd"
+      
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+
       MAIL_FROM: "Avio Letovi <opacicrelja@gmail.com>"
     volumes:
       - ./server/app/static/uploads:/app/static/uploads
