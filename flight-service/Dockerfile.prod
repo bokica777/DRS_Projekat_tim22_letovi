@@ -13,5 +13,4 @@ COPY . /app
 
 EXPOSE 5001
 
-# NOTE: flight-service starts a background Process in create_app(); keep -w 1 to avoid duplicates.
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5001", "app.main:app"]
+CMD ["sh", "-c", "gunicorn -w 1 -b 0.0.0.0:${PORT:-5001} app.main:app"]

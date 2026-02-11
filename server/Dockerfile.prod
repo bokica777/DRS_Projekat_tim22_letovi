@@ -15,5 +15,5 @@ COPY . /app
 
 EXPOSE 5000
 
-# Use Gunicorn (not Werkzeug) + eventlet worker for Socket.IO
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:5000", "app.main:app"]
+CMD ["sh", "-c", "gunicorn -k eventlet -w 1 -b 0.0.0.0:${PORT:-5000} app.main:app"]
+
