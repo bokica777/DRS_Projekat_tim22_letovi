@@ -1,7 +1,7 @@
 import os
 import requests
 from flask import Blueprint, request, jsonify
-from app.auth import auth_required
+from app.auth import auth_required, role_required
 from app.db import db
 from app.models import User
 
