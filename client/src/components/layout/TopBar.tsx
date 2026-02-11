@@ -32,9 +32,10 @@ function NavItem({ to, label }: { to: string; label: string }) {
 }
 
 export default function TopBar() {
-  const { user, logout } = useAuth();
+  const { user, logout, avatarUrl } = useAuth();
   const nav = useNavigate();
-  
+
+  // samo cache-bust za slučaj da se negde koristi URL (fallback)
   const [avatarVersion] = useState(() => Date.now());
 
   const apiOrigin = useMemo(() => {
@@ -50,22 +51,35 @@ export default function TopBar() {
     }
   }, []);
 
+  // fallback iz user.avatarDataUrl (data:/http(s):/relativno)
   const avatarSrc = useMemo(() => {
-    const raw = (user as any)?.avatarDataUrl as string | undefined; 
+    const raw = (user as any)?.avatarDataUrl as string | undefined;
 
     if (!raw) return "";
+
+    // preview base64
     if (raw.startsWith("data:")) return raw;
 
+    // blob URL (ako negde upadne)
+    if (raw.startsWith("blob:")) return raw;
+
+    // već apsolutni URL
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
       const sep = raw.includes("?") ? "&" : "?";
       return `${raw}${sep}v=${avatarVersion}`;
     }
 
+    // relativno: "/static/..." ili "static/..."
     const path = raw.startsWith("/") ? raw : `/${raw}`;
     const abs = `${apiOrigin}${path}`;
     const sep = abs.includes("?") ? "&" : "?";
     return `${abs}${sep}v=${avatarVersion}`;
   }, [user, apiOrigin, avatarVersion]);
+
+  // ✅ final: prvo avatarUrl (blob iz AuthContext), pa fallback avatarSrc
+  const finalAvatarSrc = useMemo(() => {
+    return avatarUrl || avatarSrc || "";
+  }, [avatarUrl, avatarSrc]);
 
   return (
     <header className="sticky top-0 z-30">
@@ -140,9 +154,9 @@ export default function TopBar() {
                   title="Profil"
                 >
                   <div className="h-9 w-9 rounded-2xl overflow-hidden bg-white/15 border border-white/20 grid place-items-center text-white font-semibold">
-                    {avatarSrc ? (
+                    {finalAvatarSrc ? (
                       <img
-                        src={avatarSrc}
+                        src={finalAvatarSrc}
                         alt="avatar"
                         className="h-full w-full object-cover"
                       />
