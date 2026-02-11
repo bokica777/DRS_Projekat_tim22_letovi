@@ -93,12 +93,10 @@ export default function FlightsPage() {
 
   useEffect(() => {
     refreshFlights();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, search, airlineId]);
 
   useEffect(() => {
     refreshMyTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, (user as any)?.role]);
 
   const handleBuy = async (flightId: number) => {
@@ -137,10 +135,9 @@ export default function FlightsPage() {
       await adminCancelFlight(flightId);
       showSuccess("✅ Let je otkazan.");
 
-      // Ukloni iz trenutne liste (PLANNED), a zatim prebaci na DONE da se vidi među otkazanim
+      
       setFlights((prev) => prev.filter((f) => f.id !== flightId));
 
-      // Prebaci admina na tab gde se vide otkazani + auto refresh preko useEffect
       if (active !== "DONE") setActive("DONE");
       else await refreshFlights();
     } catch (e: any) {
@@ -161,7 +158,6 @@ export default function FlightsPage() {
       await adminDeleteFlight(flightId);
       showSuccess("✅ Let je obrisan.");
 
-      // odmah nestaje sa UI
       setFlights((prev) => prev.filter((f) => f.id !== flightId));
     } catch (e: any) {
       showError(`❌ ${errMsg(e)}`);

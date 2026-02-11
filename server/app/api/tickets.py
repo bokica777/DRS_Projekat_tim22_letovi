@@ -41,7 +41,6 @@ def buy_ticket_public():
     if not user_id:
         return jsonify({"error": "Invalid JWT user id"}), 401
 
-    # 1) Uzmi let iz flight-service (da uzmemo cenu)
     base = _flight_service_base()
     fr = requests.get(f"{base}/internal/flights/{flight_id}", timeout=5)
 
@@ -61,7 +60,6 @@ def buy_ticket_public():
     except Exception:
         return jsonify({"error": "Invalid flight price"}), 502
 
-    # 2) Proveri balans u DB1
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found in DB1"}), 404
@@ -69,7 +67,6 @@ def buy_ticket_public():
     if float(user.balance) < price:
         return jsonify({"error": "Insufficient balance", "balance": user.balance, "price": price}), 400
 
-    # 3) Skini balans (commit)
     try:
         user.balance = float(user.balance) - price
         db.session.commit()
@@ -77,7 +74,6 @@ def buy_ticket_public():
         db.session.rollback()
         return jsonify({"error": "Failed to update balance", "details": str(e)}), 500
 
-    # 4) Pozovi async buy u flight-service
     br = requests.post(
         f"{base}/internal/tickets/buy",
         json={"user_id": user_id, "flight_id": flight_id},
@@ -92,7 +88,6 @@ def buy_ticket_public():
             "charged": price
         }), 202
 
-    # 5) Ako buy nije uspeo -> refund (kompenzacija)
     try:
         user = User.query.get(user_id)
         if user:
@@ -101,7 +96,6 @@ def buy_ticket_public():
     except Exception:
         db.session.rollback()
 
-    # Ako flight-service vrati 409 (validacije), prosledi korisniku kao 409
     if br.status_code == 409:
         return jsonify({"error": "Flight not eligible for purchase", "details": br.text}), 409
 

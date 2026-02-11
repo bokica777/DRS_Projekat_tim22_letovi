@@ -9,17 +9,11 @@ LOCAL_TZ = ZoneInfo("Europe/Belgrade")
 
 
 def _as_utc(dt):
-    """
-    departure_time iz baze može nekad doći kao:
-    - timezone-aware (timestamp with time zone) -> samo prebacimo u UTC
-    - naive (bez tzinfo) -> u praksi je to najčešće lokalno vreme (Europe/Belgrade),
-      pa ga prvo "obeležimo" kao lokalno, pa konvertujemo u UTC.
-    """
+
     if dt is None:
         return None
 
     if dt.tzinfo is None:
-        # NAJBITNIJI FIX: naive tretiramo kao lokalno vreme
         dt = dt.replace(tzinfo=LOCAL_TZ)
 
     return dt.astimezone(timezone.utc)
@@ -50,12 +44,10 @@ def run_status_updater(engine):
 
                 end = start + timedelta(seconds=int(f.duration_sec or 0))
 
-                # PLANNED -> IN_PROGRESS
                 if f.status == FlightStatus.PLANNED and now >= start:
                     f.status = FlightStatus.IN_PROGRESS
                     changed = True
 
-                # IN_PROGRESS -> FINISHED
                 if f.status == FlightStatus.IN_PROGRESS and now >= end:
                     f.status = FlightStatus.FINISHED
                     changed = True

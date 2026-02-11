@@ -4,7 +4,7 @@ from email.message import EmailMessage
 from typing import List, Optional, Tuple
 
 
-Attachment = Tuple[str, bytes, str]  # (filename, content_bytes, mime_type)
+Attachment = Tuple[str, bytes, str] 
 
 
 def _cfg():

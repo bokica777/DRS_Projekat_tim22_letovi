@@ -8,7 +8,7 @@ from app.routes_users import users_bp
 from app.routes_admin import admin_bp
 from app.socketio_app import socketio, register_ws_handlers
 from app.api.flights import bp as flights_bp
-from app.api.tickets import tickets_bp  # <-- DODATO
+from app.api.tickets import tickets_bp  
 from app.api.ratings import ratings_bp
 
 
@@ -19,9 +19,6 @@ def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
 
-    # -----------------
-    # DB1 konekcija (POSTGRES ONLY)
-    # -----------------
     db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
@@ -42,32 +39,21 @@ def create_app():
 
     db.init_app(app)
 
-    # -----------------
-    # Blueprint-ovi
-    # -----------------
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(admin_bp, url_prefix="/api")
-    app.register_blueprint(flights_bp)   # flights.py već ima /api prefix
-    app.register_blueprint(tickets_bp)   # <-- DODATO (/api/tickets/...)
-    app.register_blueprint(ratings_bp)   # <-- DODATO (/api/ratings/...)
+    app.register_blueprint(flights_bp)   
+    app.register_blueprint(tickets_bp)  
+    app.register_blueprint(ratings_bp)  
 
-    # -----------------
-    # Health ruta
-    # -----------------
+
     @app.get("/health")
     def health():
         return jsonify({"status": "server ok"})
 
-    # -----------------
-    # Kreiranje tabela (DB1)
-    # -----------------
     with app.app_context():
         db.create_all()
 
-    # -----------------
-    # Socket.IO
-    # -----------------
     socketio.init_app(app)
     register_ws_handlers()
 

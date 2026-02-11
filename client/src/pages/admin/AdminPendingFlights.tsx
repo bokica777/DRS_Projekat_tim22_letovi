@@ -41,15 +41,14 @@ function errMsg(e: any): string {
   return e?.message ? String(e.message) : "Greška";
 }
 
-// Admin akcije (approve/reject) dozvoljene su samo dok let NIJE krenuo.
 function adminActionBlockedReason(f: AdminFlight): string | null {
   const st = (f as any).status as string | undefined;
-  if (!st) return null; // ako backend ne šalje status, ne blokiramo na frontu
+  if (!st) return null; 
   if (st === "IN_PROGRESS")
     return "Let je već u toku — ne može se odobriti/odbiti.";
   if (st === "FINISHED")
     return "Let je već završen — ne može se odobriti/odbiti.";
-  return null; // PLANNED -> ok
+  return null; 
 }
 
 export default function AdminPendingFlights() {

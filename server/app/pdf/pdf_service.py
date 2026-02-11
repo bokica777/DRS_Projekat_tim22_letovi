@@ -23,7 +23,6 @@ def generate_flights_report_pdf(tab: str, flights: List[Dict]) -> Tuple[bytes, s
     c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4
 
-    # --- Header ---
     c.setFont("Helvetica-Bold", 14)
     c.drawString(40, height - 40, "Izveštaj o letovima (Avio Letovi)")
 
@@ -31,11 +30,9 @@ def generate_flights_report_pdf(tab: str, flights: List[Dict]) -> Tuple[bytes, s
     c.drawString(40, height - 60, f"Tab: {tab}")
     c.drawString(200, height - 60, f"Generisano: {now.strftime('%d.%m.%Y %H:%M:%S')}")
 
-    # --- Summary ---
     c.setFont("Helvetica", 10)
     c.drawString(40, height - 80, f"Ukupno letova: {len(flights)}")
 
-    # --- Table header ---
     y = height - 110
     c.setFont("Helvetica-Bold", 9)
     c.drawString(40, y, "ID")
@@ -47,7 +44,6 @@ def generate_flights_report_pdf(tab: str, flights: List[Dict]) -> Tuple[bytes, s
 
     c.line(40, y - 4, width - 40, y - 4)
 
-    # --- Rows ---
     c.setFont("Helvetica", 8)
     y -= 18
 
@@ -84,7 +80,6 @@ def generate_flights_report_pdf(tab: str, flights: List[Dict]) -> Tuple[bytes, s
         dep = _safe_str(f.get("departure_time"))
         status = _safe_str(f.get("status"))
 
-        # skraćivanje da ne beži iz reda
         if len(name) > 22:
             name = name[:22] + "…"
         if len(comp) > 16:

@@ -28,12 +28,7 @@ SessionLocal = sessionmaker(
 
 
 def init_db():
-    """
-    Kreira sve tabele definisane u app.db.models (uključujući Ticket i Rating ako postoje)
-    + seed inicijalnih kompanija.
-    Retry je tu jer DB2 u dockeru nekad nije spreman odmah.
-    """
-    # retry jer db2 nekad nije spreman odmah
+
     for _ in range(30):
         try:
             Base.metadata.create_all(bind=engine)
@@ -43,7 +38,6 @@ def init_db():
     else:
         raise RuntimeError("DB2 not ready after 30s")
 
-    # seed kompanija
     with SessionLocal() as db:
         try:
             if db.query(Company).count() == 0:

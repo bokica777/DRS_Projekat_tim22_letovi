@@ -55,12 +55,7 @@ class Flight(Base):
 
 
 class Ticket(Base):
-    """
-    Kupljena karta (DB2 - flight-service).
 
-    user_id je iz DB1 (server) ali ovde ga cuvamo kao string.
-    price je snapshot cene u trenutku kupovine.
-    """
     __tablename__ = "tickets"
     id = Column(Integer, primary_key=True)
 

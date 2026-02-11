@@ -1,23 +1,23 @@
 from flask import Blueprint, request, jsonify
 from .db import db
 from .models import User
-from .auth import auth_required, role_required   # ogranicenja
+from .auth import auth_required, role_required   
 from .email.email_service import send_email
 from .email.email_jobs import run_in_process
 
 admin_bp = Blueprint("admin_bp", __name__)
 
 @admin_bp.get("/admin/users")
-@auth_required                     # ogranicenje
-@role_required("ADMIN")            # ogranicenje
+@auth_required                     
+@role_required("ADMIN")            
 def list_users():
     users = User.query.all()
     return jsonify([u.to_dict() for u in users]), 200
 
 
 @admin_bp.delete("/admin/users/<int:user_id>")
-@auth_required                     # ogranicenje
-@role_required("ADMIN")            #ogranicenje
+@auth_required                     
+@role_required("ADMIN")            
 def delete_user(user_id):
     user = User.query.get(user_id)
     if not user:
@@ -29,8 +29,8 @@ def delete_user(user_id):
 
 
 @admin_bp.patch("/admin/users/<int:user_id>/role")
-@auth_required                     # ogranicenje
-@role_required("ADMIN")            # ograniccenje
+@auth_required                     
+@role_required("ADMIN")            
 def change_role(user_id):
     data = request.get_json() or {}
     new_role = (data.get("role") or "").strip().upper()
@@ -46,7 +46,6 @@ def change_role(user_id):
     user.role = new_role
     db.session.commit()
 
-    # ✅ MAIL: samo kad prelazi u MENADZER (spec baš to traži)
     if old_role != "MENADZER" and new_role == "MENADZER":
         subject = "Promena uloge na platformi Avio Letovi"
         body = (

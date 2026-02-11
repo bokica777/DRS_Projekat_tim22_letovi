@@ -9,11 +9,7 @@ from app.db.models import Flight, Ticket, ApprovalStatus, FlightStatus
 
 
 def process_ticket_purchase(user_id: str, flight_id: int, sleep_seconds: int = 5) -> None:
-    """
-    Async obrada kupovine:
-    - sleep (simulacija sporog procesa)
-    - insert u tickets (DB2)
-    """
+   
     db2_url = os.getenv(
         "DB2_URL",
         "postgresql+psycopg2://postgres:postgres@db2:5432/db2"

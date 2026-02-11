@@ -7,7 +7,6 @@ import { Label } from "../../components/common/Label";
 import { Select } from "../../components/common/Select";
 import { updateMe, uploadProfileImage, fetchMyProfileImageObjectUrl  } from "../../api/users";
 
-// Ako tvoj User nema avatarDataUrl u tipu, ovde ga "proširi" lokalno
 type ProfileForm = User & { avatarDataUrl?: string };
 
 export default function ProfilePage() {
@@ -17,48 +16,40 @@ export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm | null>(user ? { ...(user as ProfileForm) } : null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  // cache-bust za avatar da ne vuče stari fajl iz cache-a
   const [avatarVersion, setAvatarVersion] = useState<number>(0);
   const [, setAvatarObjectUrl] = useState<string | null>(null);
 
-  // Kad stigne user iz refreshMe, nemoj da pregaziš avatar ako ga backend ne vraća
   useEffect(() => {
   if (!user) return;
 
   let alive = true;
 
-  // 1) prvo setuj formu (tekstualna polja) i ne pregazi postojeći avatar preview
   setForm((prev) => {
     const incoming = user as ProfileForm;
 
     return {
       ...incoming,
-      // zadrži prethodni avatar ako incoming nema ništa
       avatarDataUrl: incoming.avatarDataUrl ?? prev?.avatarDataUrl ?? "",
     };
   });
 
-  // 2) zatim pokušaj da povučeš sliku preko axios-a kao blob (sa Bearer tokenom)
   (async () => {
     try {
-      const url = await fetchMyProfileImageObjectUrl(); // vrati blob:...
+      const url = await fetchMyProfileImageObjectUrl();
       if (!alive) {
         URL.revokeObjectURL(url);
         return;
       }
 
-      // očisti prethodni blob url da ne curi memorija
       setAvatarObjectUrl((prevUrl) => {
         if (prevUrl) URL.revokeObjectURL(prevUrl);
         return url;
       });
 
-      // setuj avatar na blob url (ovo radi u <img>)
       setForm((prev) => (prev ? { ...prev, avatarDataUrl: url } : prev));
       setAvatarVersion(Date.now());
     } catch (e) {
-      // ako user nema sliku (404) ili nešto slično, samo ignoriši
-      // i ostaje preview ili prazan avatar
+
     }
   })();
 
@@ -76,16 +67,14 @@ export default function ProfilePage() {
 
     setAvatarFile(file);
 
-    // Preview (data URL) - ovo je samo lokalno da se vidi odmah
     const reader = new FileReader();
     reader.onload = () => {
       set("avatarDataUrl", String(reader.result));
-      setAvatarVersion(Date.now()); // da img rerenderuje
+      setAvatarVersion(Date.now()); 
     };
     reader.readAsDataURL(file);
   };
 
-  // ✅ Najbitnije: origin (http://localhost:5544), NE /api/v1
   const apiOrigin = useMemo(() => {
     const v = (import.meta as any).env?.VITE_API_URL as string | undefined;
     const fallback = window.location.origin;
@@ -103,17 +92,14 @@ export default function ProfilePage() {
     const raw = form?.avatarDataUrl || "";
     if (!raw) return "";
 
-    // preview base64
     if (raw.startsWith("data:")) return raw;
     if (raw.startsWith("blob:")) return raw;
 
-    // već apsolutni URL
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
       const sep = raw.includes("?") ? "&" : "?";
       return `${raw}${sep}v=${avatarVersion || 0}`;
     }
 
-    // relativno: "/static/..." ili "static/..."
     const path = raw.startsWith("/") ? raw : `/${raw}`;
     const abs = `${apiOrigin}${path}`;
 
@@ -121,7 +107,6 @@ export default function ProfilePage() {
     return `${abs}${sep}v=${avatarVersion || 0}`;
   }, [form?.avatarDataUrl, apiOrigin, avatarVersion]);
 
-  // pokušaj da izvučemo putanju iz upload odgovora bez obzira kako si nazvao polje
   const pickAvatarPath = (res: any): string | "" => {
     return (
       res?.avatarPath ||
@@ -141,7 +126,6 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      // 1) Sačuvaj tekstualne podatke
       await updateMe({
         firstName: form.firstName,
         lastName: form.lastName,
@@ -152,25 +136,22 @@ export default function ProfilePage() {
         number: form.streetNumber,
       });
 
-      // 2) Ako ima slike - upload i odmah setuj avatar putanju u state
       if (avatarFile) {
         const res = await uploadProfileImage(avatarFile);
         setAvatarFile(null);
 
         const avatarPath = pickAvatarPath(res);
 
-        // Ako backend vrati putanju, setuj odmah (da ostane posle save)
         if (avatarPath) {
           set("avatarDataUrl", avatarPath);
-          setAvatarVersion(Date.now()); // cache-bust posle upload
+          setAvatarVersion(Date.now()); 
         } else {
-          // Ako ne vraća ništa, i dalje ćemo pokušati refreshMe,
-          // ali ovo je signal da upload endpoint treba da vraća putanju
+
           console.warn("uploadProfileImage nije vratio avatar putanju (avatarPath/avatarUrl/url...).");
         }
       }
 
-      // 3) Povuci sveže podatke (ako backend vraća avatar - super; ako ne, neće pregaziti jer čuvamo prev)
+     
       await refreshMe();
 
       alert("Sačuvano!");

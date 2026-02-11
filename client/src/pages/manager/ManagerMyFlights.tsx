@@ -51,7 +51,6 @@ export default function ManagerMyFlightsPage() {
   useEffect(() => {
     if (!id) return;
     refresh();
-    // nema intervala
   }, [id]);
 
   if (!user || !hasRole(["MENADZER"])) {

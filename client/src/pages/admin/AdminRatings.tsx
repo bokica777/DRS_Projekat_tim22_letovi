@@ -55,7 +55,6 @@ export default function AdminRatingsPage() {
       try {
         const data = await fetchAdminRatings();
 
-        // ✅ harden: nikad NaN u prikazu
         const cleaned = (data || []).map((r) => ({
           ...r,
           rating: safeRating((r as any).rating),

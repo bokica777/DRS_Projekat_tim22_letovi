@@ -44,7 +44,7 @@ function mapTicketDtoToTicket(t: TicketDto): Ticket {
         from: t.flight.from_airport,
         to: t.flight.to_airport,
         distanceKm: t.flight.distance_km,
-        durationMinutes: t.flight.duration_sec, // usput: ovo su sekunde ako ti API tako kaže
+        durationMinutes: t.flight.duration_sec, 
         createdBy: t.flight.created_by_user_id,
         price: Number(t.flight.price),
         status: t.flight.status,

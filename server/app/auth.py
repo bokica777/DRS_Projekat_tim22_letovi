@@ -11,13 +11,11 @@ from .db import db
 
 auth_bp = Blueprint("auth_bp", __name__)
 
-# ================= CONFIG =================
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev_secret_change_me")
-JWT_EXP_SECONDS = int(os.environ.get("JWT_EXP_SECONDS", "3600"))  # 1h
-LOCK_SECONDS = int(os.environ.get("LOCK_SECONDS", "60"))          # 1 min za test
+JWT_EXP_SECONDS = int(os.environ.get("JWT_EXP_SECONDS", "3600"))  
+LOCK_SECONDS = int(os.environ.get("LOCK_SECONDS", "60"))          
 
 
-# ================= Helpers (DB lock) =================
 def _now() -> int:
     return int(time.time())
 
@@ -53,7 +51,6 @@ def reset_attempts_user(u: User):
     db.session.commit()
 
 
-# ================= JWT helpers =================
 def create_token(user):
     payload = {
         "sub": str(user.id),
@@ -102,7 +99,6 @@ def role_required(*roles):
     return decorator
 
 
-# ================= ROUTES =================
 
 @auth_bp.post("/login")
 def login():
@@ -113,19 +109,16 @@ def login():
     if not email or not password:
         return jsonify({"error": "email and password are required"}), 400
 
-    # Uzimamo user-a iz DB
+
     u: User | None = User.query.filter_by(email=email).first()
 
-    # Ako user ne postoji, vrati generic invalid (ne otkrivamo da li postoji)
     if not u:
         return jsonify({"error": "invalid credentials"}), 401
 
-    # Provera lock-a iz DB
     locked, seconds_left = is_locked_user(u)
     if locked:
         return jsonify({"error": "blocked", "retry_after_seconds": seconds_left}), 403
 
-    # Provera lozinke
     if not pbkdf2_sha256.verify(password, u.password_hash):
         fails = register_fail_user(u)
         locked_now, seconds_left_now = is_locked_user(u)
@@ -133,7 +126,6 @@ def login():
             return jsonify({"error": "blocked", "retry_after_seconds": seconds_left_now}), 403
         return jsonify({"error": "invalid credentials", "fails": fails}), 401
 
-    # Uspešan login -> reset attempts u DB
     reset_attempts_user(u)
 
     token = create_token(u)

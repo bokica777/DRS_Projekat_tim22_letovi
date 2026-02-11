@@ -10,7 +10,7 @@ from app.db.models import (
     FlightStatus,
     ApprovalStatus,
     Ticket,
-    Rating,          # <<< DODATO
+    Rating,        
 )
 from app.scheduler.tickets_process import process_ticket_purchase
 
@@ -51,9 +51,6 @@ def _enum_member(enum_cls, name: str):
     return getattr(enum_cls, name, None)
 
 
-# =========================
-# COMPANIES
-# =========================
 
 @bp.get("/companies")
 def list_companies():
@@ -62,9 +59,6 @@ def list_companies():
     return jsonify([{"id": c.id, "name": c.name} for c in companies]), 200
 
 
-# =========================
-# FLIGHTS
-# =========================
 
 @bp.get("/flights")
 def list_flights():
@@ -183,16 +177,9 @@ def create_flight():
     return jsonify(flight_to_dto(f)), 201
 
 
-# =========================
-# MANAGER EDIT (REJECTED -> PENDING) ✅ DODATO
-# =========================
 @bp.patch("/flights/<int:flight_id>")
 def update_rejected_flight(flight_id: int):
-    """
-    Menadzer može da izmeni let SAMO ako je admin odbio (REJECTED).
-    Nakon izmene: approval_status -> PENDING, rejection_reason -> None.
-    Auth je na serveru, ovde samo verifikujemo ownership preko user_id iz payload-a.
-    """
+
     db: Session = request.environ["db"]
     f = db.get(Flight, flight_id)
     if not f:
@@ -206,20 +193,16 @@ def update_rejected_flight(flight_id: int):
     if str(f.created_by_user_id) != user_id:
         abort(403, "Only creator can edit this flight")
 
-    # sme samo ako je REJECTED
     if f.approval_status != ApprovalStatus.REJECTED:
         abort(409, "Only REJECTED flights can be edited")
 
-    # ne diramo ako je već krenuo/istorija
     if f.status in [FlightStatus.IN_PROGRESS, FlightStatus.FINISHED, FlightStatus.CANCELLED]:
         abort(409, "Cannot edit flight in this status")
 
-    # bezbedno: zabrani izmenu ako ima kupljenih karata (realno neće imati jer nije APPROVED, ali neka stoji)
     has_tickets = db.query(Ticket).filter(Ticket.flight_id == flight_id).first()
     if has_tickets:
         abort(409, "Cannot edit flight with existing tickets")
 
-    # dozvoljena polja za izmenu
     allowed = {
         "name",
         "company_id",
@@ -264,19 +247,16 @@ def update_rejected_flight(flight_id: int):
                 abort(400, "departure_time must be ISO datetime string")
 
         elif k == "price":
-            # Numeric u bazi, prihvati broj/string
             try:
                 f.price = v
             except Exception:
                 abort(400, "price invalid")
 
         else:
-            # string polja
             if v is None:
                 abort(400, f"{k} cannot be null")
             setattr(f, k, str(v))
 
-    # reset na ponovnu verifikaciju
     f.approval_status = ApprovalStatus.PENDING
     f.rejection_reason = None
 
@@ -286,9 +266,6 @@ def update_rejected_flight(flight_id: int):
     return jsonify(flight_to_dto(f)), 200
 
 
-# =========================
-# APPROVAL
-# =========================
 
 @bp.post("/flights/<int:flight_id>/approve")
 def approve_flight(flight_id: int):
@@ -346,11 +323,9 @@ def delete_flight(flight_id: int):
     if not f:
         abort(404)
 
-    # Dozvoli brisanje samo ako je PLANNED ili CANCELLED (cuva istoriju)
     if f.status not in [FlightStatus.PLANNED, FlightStatus.CANCELLED]:
         abort(409, "Cannot delete flight in this status")
 
-    # Bezbedno: zabrani brisanje ako ima kupljenih karata
     has_tickets = db.query(Ticket).filter(Ticket.flight_id == flight_id).first()
     if has_tickets:
         abort(409, "Cannot delete flight with existing tickets")
@@ -359,10 +334,6 @@ def delete_flight(flight_id: int):
     db.commit()
     return jsonify({"status": "deleted", "id": flight_id}), 200
 
-
-# =========================
-# TICKETS
-# =========================
 
 @bp.post("/tickets/buy")
 def buy_ticket():
@@ -435,10 +406,6 @@ def tickets_by_flight():
     user_ids = sorted({t.user_id for t in tickets})  # unique
     return jsonify(user_ids), 200
 
-
-# =========================
-# RATINGS  ✅ GOTOVO
-# =========================
 
 @bp.post("/ratings")
 def create_rating():

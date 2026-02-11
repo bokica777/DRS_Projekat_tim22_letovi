@@ -10,8 +10,7 @@ from .auth import auth_required
 
 users_bp = Blueprint("users_bp", __name__)
 
-# folder gde čuvamo slike (server/app/static/uploads)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # .../server/app
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
 
@@ -50,28 +49,23 @@ def register():
         "balance"
     ]
 
-    # Provera obaveznih polja
     missing = [f for f in required_fields if f not in data or str(data[f]).strip() == ""]
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
     email = data["email"].strip().lower()
 
-    # Provera da li email vec postoji
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already exists"}), 409
 
-    # Provera i parsiranje balance
     try:
         balance = float(data["balance"])
     except ValueError:
         return jsonify({"error": "Balance must be a number"}), 400
 
-    # Password hashing (BEZ 72 bytes limita)
     password = str(data["password"])
     password_hash = pbkdf2_sha256.hash(password)
 
-    # Kreiranje korisnika
     user = User(
         first_name=data["firstName"].strip(),
         last_name=data["lastName"].strip(),
@@ -122,7 +116,6 @@ def deposit():
     }), 200
 
 
-# ✅ NOVO: prikaz sopstvenog profila
 @users_bp.get("/me")
 @auth_required
 def me():
@@ -132,7 +125,6 @@ def me():
     return jsonify(user.to_dict()), 200
 
 
-# ✅ NOVO: izmena profila (bez slike) - PATCH /api/users/me
 @users_bp.patch("/me")
 @auth_required
 def update_profile():
@@ -142,7 +134,6 @@ def update_profile():
 
     data = request.get_json(silent=True) or {}
 
-    # dozvoljena polja za izmenu
     mapping = {
         "firstName": "first_name",
         "lastName": "last_name",
@@ -160,7 +151,6 @@ def update_profile():
             setattr(user, model_attr, str(data[in_key]).strip())
             changed = True
 
-    # opciono: promena lozinke
     if "password" in data and str(data["password"]).strip() != "":
         user.password_hash = pbkdf2_sha256.hash(str(data["password"]))
         changed = True
@@ -172,7 +162,6 @@ def update_profile():
     return jsonify(user.to_dict()), 200
 
 
-# ✅ NOVO: upload slike profila (multipart/form-data, polje mora biti "file")
 @users_bp.post("/me/image")
 @auth_required
 def upload_profile_image():
@@ -216,9 +205,8 @@ def get_profile_image():
     if not user.profile_image:
         return jsonify({"error": "No profile image"}), 404
 
-    # user.profile_image je tipa "/static/uploads/ime.png"
-    # moramo ga prevesti u stvarnu putanju na disku: server/app/static/uploads/ime.png
-    rel = user.profile_image.lstrip("/")  # "static/uploads/ime.png"
+    
+    rel = user.profile_image.lstrip("/")  
     abs_path = os.path.join(BASE_DIR, rel)
 
     if not os.path.exists(abs_path):

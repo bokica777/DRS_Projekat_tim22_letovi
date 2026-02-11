@@ -7,10 +7,7 @@ socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
 
 
 def _get_jwt_secret() -> str:
-    """
-    JWT_SECRET mora biti isti kao u auth.py.
-    Preferiramo env var, ali ako koristiš app.config, pokupi i odatle.
-    """
+   
     return (
         os.environ.get("JWT_SECRET")
         or current_app.config.get("JWT_SECRET")
@@ -29,7 +26,6 @@ def register_ws_handlers():
         user_id = None
         role = None
 
-        # 1) prefer auth token
         token = None
         if isinstance(auth, dict):
             token = auth.get("token")
@@ -38,7 +34,6 @@ def register_ws_handlers():
             try:
                 payload = _decode_token(token)
 
-                # U auth.py koristimo "sub" (string). Dodatno podržimo i "user_id"/"id".
                 user_id = payload.get("user_id") or payload.get("id") or payload.get("sub")
                 role = payload.get("role")
 
@@ -51,9 +46,9 @@ def register_ws_handlers():
                 return False
             except Exception as e:
                 print("[WS] invalid token:", e)
-                return False  # odbij konekciju
+                return False  
 
-        # 2) fallback (privremeno) dok ne prebaciš klijent (NE preporučujem za produkciju)
+       
         if not user_id:
             user_id = request.args.get("user_id")
             role = request.args.get("role")

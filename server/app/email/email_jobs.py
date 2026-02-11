@@ -8,5 +8,4 @@ def _safe_run(fn, args, kwargs):
     try:
         fn(*args, **kwargs)
     except Exception as e:
-        # samo log, da ne ruši app
         print("[MAIL] failed:", e)

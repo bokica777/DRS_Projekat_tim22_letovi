@@ -24,13 +24,9 @@ export function FlightCard({
 }: Props) {
   const { user, hasRole } = useAuth();
 
-  // === Pravila ===
-  // Kupovina: korisnik/menadžer može samo dok let nije počeo
   const canBuy =
     !!user && hasRole(["KORISNIK", "MENADZER"]) && flight.status === "PLANNED";
 
-  // Admin: otkazivanje i brisanje samo dok let nije počeo (PLANNED)
-  // (Let koji je IN_PROGRESS ili FINISHED ne sme da se otkazuje/briše)
   const canCancel = !!user && hasRole(["ADMIN"]) && flight.status === "PLANNED";
   const canDelete = !!user && hasRole(["ADMIN"]) && flight.status === "PLANNED";
 

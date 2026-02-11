@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return url;
     } catch {
-      // nema slike / 404 -> samo skloni avatar
       setAvatarUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;

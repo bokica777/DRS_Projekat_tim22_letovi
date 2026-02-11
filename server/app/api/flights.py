@@ -55,9 +55,6 @@ def list_companies():
     return jsonify(data), 200
 
 
-# =========================
-# FLIGHTS (LIST / GET)
-# =========================
 @bp.get("/flights")
 @auth_required
 def list_flights():
@@ -96,9 +93,6 @@ def get_flight(flight_id: int):
     return jsonify(r.json()), 200
 
 
-# =========================
-# MANAGER – CREATE FLIGHT
-# =========================
 @bp.post("/flights")
 @auth_required
 @role_required("MENADZER")
@@ -117,9 +111,6 @@ def create_flight_from_manager():
     return jsonify(dto), 201
 
 
-# =========================
-# MANAGER – EDIT REJECTED FLIGHT (REJECTED -> PENDING) ✅ DODATO
-# =========================
 @bp.patch("/flights/<int:flight_id>")
 @auth_required
 @role_required("MENADZER")
@@ -130,12 +121,10 @@ def manager_update_rejected_flight(flight_id: int):
     """
     payload = request.get_json(force=True) or {}
 
-    # identitet menadžera iz JWT-a
     manager_id = (request.user or {}).get("sub")
     if not manager_id:
         return jsonify({"error": "Missing user id in JWT"}), 401
 
-    # obavezno šaljemo user_id ka flight-service radi ownership check
     payload["user_id"] = str(manager_id)
 
     r = _fs_patch(f"/internal/flights/{flight_id}", json=payload)
@@ -145,17 +134,11 @@ def manager_update_rejected_flight(flight_id: int):
     dto = r.json()
     delete_prefix("flights:v1:")
 
-    # real-time adminu: opet pending
     socketio.emit("flight.updated.pending", dto, room="admins")
-    # i menadžeru da osveži ako ima listen
     socketio.emit("flight.updated.pending", dto, room=f"user:{dto.get('created_by_user_id')}")
 
     return jsonify(dto), 200
 
-
-# =========================
-# ADMIN – APPROVE / REJECT / CANCEL
-# =========================
 @bp.post("/admin/flights/<int:flight_id>/approve")
 @auth_required
 @role_required("ADMIN")
@@ -235,10 +218,6 @@ def admin_cancel(flight_id: int):
 
     return jsonify(dto), 200
 
-
-# =========================
-# ADMIN – DELETE FLIGHT
-# =========================
 @bp.delete("/admin/flights/<int:flight_id>")
 @auth_required
 @role_required("ADMIN")
@@ -256,9 +235,6 @@ def admin_delete_flight(flight_id: int):
     return jsonify({"status": "deleted", "id": flight_id}), 200
 
 
-# =========================
-# PDF REPORT (ADMIN)
-# =========================
 @bp.post("/admin/flights/report")
 @auth_required
 @role_required("ADMIN")

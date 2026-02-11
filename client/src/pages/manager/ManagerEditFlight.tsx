@@ -21,7 +21,6 @@ function errMsg(e: any): string {
   return e?.message ? String(e.message) : "Greška";
 }
 
-// helper: ISO -> "YYYY-MM-DDTHH:mm" za datetime-local
 function toDatetimeLocal(value?: string): string {
   if (!value) return "";
   const d = new Date(value);
@@ -45,30 +44,26 @@ export default function ManagerEditFlightPage() {
 
   const [flight, setFlight] = useState<ManagerFlight | null>(null);
 
-  // SVA polja kao u create
   const [name, setName] = useState("");
   const [airlineId, setAirlineId] = useState<number>(1);
   const [distanceKm, setDistanceKm] = useState<number>(1000);
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [departureTime, setDepartureTime] = useState<string>("");
   const [from, setFrom] = useState("BEG");
-  const [to, setTo] = useState(""); // BITNO: nema default CDG da ne "pregazi" postojeću vrednost
+  const [to, setTo] = useState(""); 
   const [price, setPrice] = useState<number>(120);
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Učitaj aviokompanije (da bi mogao Select)
   useEffect(() => {
     fetchAirlinesForManager()
       .then((a) => setAirlines(a))
       .catch(() => {
-        // nije kritično, samo neće raditi dropdown lepo
       });
   }, []);
 
-  // Učitaj let i prefill
   useEffect(() => {
     setLoading(true);
     setErr(null);
@@ -80,19 +75,18 @@ export default function ManagerEditFlightPage() {
         setName(f.name ?? "");
         setPrice(Number(f.price ?? 0));
 
-        // company_id može biti pod raznim imenima u DTO — probaj varijante
         const cid =
           (f as any).company_id ??
           (f as any).companyId ??
           (f as any).company?.id;
         if (cid) setAirlineId(Number(cid));
 
-        // distance
+        
         setDistanceKm(
           Number((f as any).distance_km ?? (f as any).distanceKm ?? 0),
         );
 
-        // duration: ne menjaj (bez round) + podrži minute ako backend vraća minute
+        
         const durMinRaw =
           (f as any).duration_minutes ?? (f as any).durationMinutes;
         const durSecRaw = (f as any).duration_sec ?? (f as any).durationSec;
@@ -103,18 +97,16 @@ export default function ManagerEditFlightPage() {
         } else if (durSecRaw != null) {
           minutes = Number(durSecRaw) / 60;
         }
-        // čuvamo tačno (ako je decimalno, ostaje decimalno; ne zaokružujemo)
+       
         if (Number.isFinite(minutes) && minutes > 0)
           setDurationMinutes(minutes);
 
-        // departure time
         setDepartureTime(
           toDatetimeLocal(
             (f as any).departure_time ?? (f as any).departureTime ?? "",
           ),
         );
 
-        // from/to: podrži više naziva + nema "CDG" fallback-a
         const fromVal =
           (f as any).from_airport ??
           (f as any).fromAirport ??
@@ -171,7 +163,6 @@ export default function ManagerEditFlightPage() {
         name: name.trim(),
         company_id: airlineId,
         distance_km: distanceKm,
-        // BITNO: ne zaokružuj minute, samo pretvori u sekunde (do 2 decimale)
         duration_sec: Math.max(
           1,
           Math.round(Number(durationMinutes.toFixed(2)) * 60),

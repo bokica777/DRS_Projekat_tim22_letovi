@@ -10,7 +10,7 @@ class User(db.Model):
 
     email = db.Column(db.String(120), unique=True, nullable=False)
 
-    birth_date = db.Column(db.String(20), nullable=False)   # za sad string
+    birth_date = db.Column(db.String(20), nullable=False)   
     gender = db.Column(db.String(10), nullable=False)
 
     country = db.Column(db.String(60), nullable=False)
@@ -19,14 +19,12 @@ class User(db.Model):
 
     balance = db.Column(db.Float, nullable=False, default=0.0)
 
-    role = db.Column(db.String(20), nullable=False, default="KORISNIK")  # KORISNIK/MENADZER/ADMIN
+    role = db.Column(db.String(20), nullable=False, default="KORISNIK")  
     password_hash = db.Column(db.String(255), nullable=False)
 
-    # polja za blokadu login-a (da koleginica iz A dela koristi)
     failed_login_count = db.Column(db.Integer, nullable=False, default=0)
     lock_until = db.Column(db.String(40), nullable=True)
 
-    # ✅ NOVO: putanja do slike profila (npr. /static/uploads/user_1_xxx.png)
     profile_image = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):

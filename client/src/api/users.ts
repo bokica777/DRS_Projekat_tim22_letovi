@@ -85,7 +85,6 @@ export async function uploadProfileImage(file: File): Promise<User> {
     headers: { "Content-Type": undefined as any },
   });
 
-  // uzmi svež user (za ostala polja), ali sliku za UI daj iz lokalnog fajla
   const me = await getMe();
   const dataUrl = await fileToDataUrl(file);
 
