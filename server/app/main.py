@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 from app.auth import auth_bp
 from app.db import db
@@ -8,9 +9,8 @@ from app.routes_users import users_bp
 from app.routes_admin import admin_bp
 from app.socketio_app import socketio, register_ws_handlers
 from app.api.flights import bp as flights_bp
-from app.api.tickets import tickets_bp  
+from app.api.tickets import tickets_bp
 from app.api.ratings import ratings_bp
-
 
 load_dotenv()
 
@@ -18,6 +18,19 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
+
+    origins_env = os.getenv("CORS_ORIGINS", "")
+    origins = [o.strip().rstrip("/") for o in origins_env.split(",") if o.strip()]
+
+    if not origins:
+        origins = ["http://localhost:5173"]
+
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": origins}},
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    )
 
     db_url = os.getenv("DATABASE_URL")
 
@@ -42,8 +55,8 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(admin_bp, url_prefix="/api")
-    app.register_blueprint(flights_bp)   
-    app.register_blueprint(tickets_bp)  
+    app.register_blueprint(flights_bp)  
+    app.register_blueprint(tickets_bp)   
     app.register_blueprint(ratings_bp)  
 
 
@@ -54,7 +67,7 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    socketio.init_app(app)
+    socketio.init_app(app, cors_allowed_origins=origins)
     register_ws_handlers()
 
     return app
