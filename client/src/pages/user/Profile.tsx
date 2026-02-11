@@ -19,7 +19,7 @@ export default function ProfilePage() {
 
   // cache-bust za avatar da ne vuče stari fajl iz cache-a
   const [avatarVersion, setAvatarVersion] = useState<number>(0);
-  const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
+  const [, setAvatarObjectUrl] = useState<string | null>(null);
 
   // Kad stigne user iz refreshMe, nemoj da pregaziš avatar ako ga backend ne vraća
   useEffect(() => {

@@ -9,12 +9,12 @@ export type User = {
   lastName: string;
   role: Role;
 
-  dateOfBirth: string; // ISO ili YYYY-MM-DD
+  dateOfBirth: string;
   gender: Gender;
   country: string;
   street: string;
   streetNumber: string;
 
   balance: number;
-  avatarDataUrl?: string; // base64 slika (mock)
+  avatarDataUrl?: string; 
 };
